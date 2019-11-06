@@ -15,9 +15,9 @@ blinker_t blinkers[] = {
   { 4, 1, 900, 450, 0, 0 },    // Normal 50/50 blink
   { 5, 1, 800, 400, 0, 0 },
   { 6, 2, 1000,100, 0, 0 },    // Heli tail beacon
-  { 7, 2, 2000, 30, 0, 0 },    // Anti collition double strobe
+  { 7, 2, 2000,100, 0, 0 },    // Anti collition double strobe
   { 8, 1, 500, 250, 0, 0 },    
-  { 9, 3, 2000, 30, 0, 0 }     // Heli anti collition tripple strobe
+  { 9, 3, 1500, 50, 0, 0 }     // Heli anti collition tripple strobe
 };
 
 /**************************************************************/
@@ -37,7 +37,7 @@ void loop()
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
   {
-    if (currentTime - blinkers[i].prevTime >= blinkers[i].period )
+    if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].numBlinks -1)*blinkers[i].duration*2) )
     {
       blinkers[i].state = 0; // Start over
     }
