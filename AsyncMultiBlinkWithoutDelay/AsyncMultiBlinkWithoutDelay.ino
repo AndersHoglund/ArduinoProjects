@@ -2,23 +2,35 @@
  * Asyncronuos multi blinks
 */
 
-typedef struct {
+#define PWM_INPUT 2
+
+// Classification and PWM conditions.
+#define BEACON           0  // Always on when poered up. 
+#define POS_LIGHT     1300  // Turn on Red, Green and strobes
+#define LANDING_LIGHT 1600  // Turn on landing lifghts
+
+typedef struct 
+{
   int pin;
   int numBlinks;            // Number of blinks or strobes per period
   unsigned long period;     // Overall total period time
   unsigned long duration;   // On time 
   unsigned long prevTime;
   int state;
+  double condition;
 } blinker_t;
 
-blinker_t blinkers[] = {
-  { 4, 1, 900, 450, 0, 0 },    // Normal 50/50 blink
-  { 5, 1, 800, 400, 0, 0 },
-  { 6, 2, 1000,100, 0, 0 },    // Heli tail beacon
-  { 7, 2, 2000,100, 0, 0 },    // Anti collition double strobe
-  { 8, 1, 500, 250, 0, 0 },    
-  { 9, 3, 1500, 50, 0, 0 }     // Heli anti collition tripple strobe
+blinker_t blinkers[] = 
+{
+  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
+  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
+  { 6, 2, 1000,  100, 0, 0, BEACON },       // Heli tail red beacon
+  { 7, 2, 2000,  100, 0, 0, POS_LIGHT },    // Anti collition double white strobe
+  { 8, 2, 2100,   90, 0, 0, BEACON },       // Red belly beacon
+  { 9, 3, 1500,   50, 0, 0, POS_LIGHT }      // Heli anti collition white tripple strobe
 };
+
+double pwmInput;
 
 /**************************************************************/
 void setup() 
@@ -27,6 +39,9 @@ void setup()
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
+  
+  pinMode(PWM_INPUT, INPUT);
+
 }
 
 /**************************************************************/
@@ -34,6 +49,15 @@ void loop()
 {
 
   unsigned long currentTime = millis();
+  unsigned long prevPwmTime = 0;
+  const long pwmInterval = 1000;
+
+  if (currentTime - prevPwmTime >= pwmInterval)
+  {
+    prevPwmTime = currentTime;
+    pwmInput = pulseIn(PWM_INPUT, HIGH, 30000);
+    currentTime = millis();     
+  }
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
   {
@@ -47,7 +71,7 @@ void loop()
       if (currentTime - blinkers[i].prevTime >= blinkers[i].duration ) 
       {
         blinkers[i].prevTime = currentTime;
-        blinkers[i].state = togglePinState(blinkers[i].pin, blinkers[i].state, blinkers[i].numBlinks);
+        blinkers[i].state = togglePinState(blinkers[i].pin, blinkers[i].state, blinkers[i].condition);
       }
     }
   }
@@ -55,10 +79,10 @@ void loop()
 
 /**************************************************************/
 
-int togglePinState(int pin, int state, int num)
+int togglePinState(int pin, int state, double condition)
 {
   int newState;
-    if ( (state & 0x01)  == 0)  
+    if ( (state & 0x01)  == 0 && pwmInput > condition)  
     {
       newState = HIGH;
     } 
