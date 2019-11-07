@@ -4,8 +4,9 @@
 
 #define PWM_INPUT 2
 
-// Classification and PWM conditions.
-#define BEACON           0  // Always on when poered up. 
+// Classification and PWM types.
+#define BEACON           0  // Always on when powered up. 
+#define FADING_BEACON    1  // Always on when powered up. 
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes
 #define LANDING_LIGHT 1800  // Turn on landing lifghts
 
@@ -17,19 +18,20 @@ typedef struct
   unsigned long duration;   // On time 
   unsigned long prevTime;
   int state;
-  double condition;
+  double type;
 } blinker_t;
 
 blinker_t blinkers[] = 
 {
   { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
   { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
-  { 6, 2, 1000,  100, 0, 0, BEACON },       // Heli tail red beacon
+  { 6, 8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
   { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
-  { 8, 2, 2100,   90, 0, 0, BEACON },       // Red belly beacon
+  { 8, 2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
   { 9, 3, 1500,   50, 0, 0, POS_LIGHT }     // Heli anti collition white tripple strobe
 };
 
+unsigned long currentTime;
 double pwmInput;
 
 /**************************************************************/
@@ -48,7 +50,7 @@ void setup()
 void loop() 
 {
 
-  unsigned long currentTime = millis();
+  currentTime = millis();
   unsigned long prevPwmTime = 0;
   const long pwmInterval = 1000;
 
@@ -61,6 +63,11 @@ void loop()
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
   {
+    if (blinkers[i].type == FADING_BEACON)
+    {
+      blinkers[i].prevTime = fade(blinkers[i].pin, blinkers[i].numBlinks, blinkers[i].period, blinkers[i].prevTime);
+    }
+
     if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].numBlinks -1)*blinkers[i].duration*2) )
     {
       blinkers[i].state = 0; // Start over
@@ -71,7 +78,7 @@ void loop()
       if (currentTime - blinkers[i].prevTime >= blinkers[i].duration ) 
       {
         blinkers[i].prevTime = currentTime;
-        blinkers[i].state = togglePinState(blinkers[i].pin, blinkers[i].state, blinkers[i].condition);
+        blinkers[i].state = togglePinState(blinkers[i].pin, blinkers[i].state, blinkers[i].type);
       }
     }
   }
@@ -79,10 +86,10 @@ void loop()
 
 /**************************************************************/
 
-int togglePinState(int pin, int state, double condition)
+int togglePinState(int pin, int state, double type)
 {
   int newState;
-    if ( (state & 0x01)  == 0 && pwmInput > condition)  
+    if ( (state & 0x01)  == 0 && pwmInput > type)  
     {
       newState = HIGH;
     } 
@@ -95,4 +102,27 @@ int togglePinState(int pin, int state, double condition)
 
     state++;
     return state;
+}
+
+/**************************************************************/
+
+unsigned long fade(int pin, int fadeStep, unsigned long period, unsigned long ledFadeTime)
+{
+  static int dir = 0;
+  static int fadeValue = 0;
+
+ // fade in/out from min/max in increments of 5 points:
+  if (currentTime - ledFadeTime >= period)
+  {
+    analogWrite(pin, fadeValue);
+
+    ledFadeTime = currentTime;
+
+    if (dir == 0) {fadeValue += fadeStep;}
+    else {fadeValue -= fadeStep;}
+
+    if (fadeValue >= 255) { dir = 1;}
+    if (fadeValue == 0)   { dir = 0;}
+  }
+  return ledFadeTime;
 }
