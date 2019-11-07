@@ -56,6 +56,7 @@ void loop()
   {
     prevPwmTime = currentTime;
     pwmInput = pulseInLong(PWM_INPUT, HIGH, 30000);
+    if (pwmInput == 0) pwmInput = 1000; 
   }
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
