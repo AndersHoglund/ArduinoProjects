@@ -3,10 +3,14 @@
 */
 
 #define PWM_INPUT 2
+#define RESERVED_PIN 3
+#define FIRST_LED_PIN 4
+#define LAST_LED_PIN 13
 
 // Classification and PWM types.
-#define BEACON           0  // Always on when powered up. 
-#define FADING_BEACON    1  // Always on when powered up. 
+#define NOT_USED         0
+#define BEACON           1  // Always on when powered up. 
+#define FADING_BEACON    2  // Always on when powered up. 
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes
 #define LANDING_LIGHT 1800  // Turn on landing lifghts
 
@@ -23,12 +27,16 @@ typedef struct
 
 blinker_t blinkers[] = 
 {
-  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
-  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
-  { 6, 8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
-  { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
-  { 8, 2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
-  { 9, 3, 1500,   50, 0, 0, POS_LIGHT }     // Heli anti collition white tripple strobe
+  { FIRST_LED_PIN, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
+  { 5,             1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
+  { 6,             8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
+  { 7,             1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
+  { 8,             2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
+  { 9,             3, 1500,   50, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
+  {10,             0,    0,    0, 0, 0, NOT_USED },     // Not used, yet... 
+  {11,             0,    0,    0, 0, 0, NOT_USED },     // Not used 
+  {12,             0,    0,    0, 0, 0, NOT_USED },     // Not used 
+  {LAST_LED_PIN,   0,    0,    0, 0, 0, NOT_USED },     // Not used 
 };
 
 unsigned long currentTime;
@@ -63,6 +71,13 @@ void loop()
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
   {
+    if ( blinkers[i].type == NOT_USED ||
+         blinkers[i].pin   < FIRST_LED_PIN || 
+         blinkers[i].pin   > LAST_LED_PIN )
+    { 
+        break;
+    }
+    
     if (blinkers[i].type == FADING_BEACON)
     {
       blinkers[i].prevTime = fade(blinkers[i].pin, blinkers[i].numBlinks, blinkers[i].period, blinkers[i].prevTime);
