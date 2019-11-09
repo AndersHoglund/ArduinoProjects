@@ -3,15 +3,14 @@
 */
 
 #define PWM_INPUT 2
-#define RESERVED_PIN 3
-#define FIRST_LED_PIN 4
+#define FIRST_LED_PIN 3
 #define LAST_LED_PIN 13
 
 // Classification and PWM types.
 #define NOT_USED         0
 #define BEACON           1  // Always on when powered up. 
-#define FADING_BEACON    2  // Always on when powered up. 
-#define POS_LIGHT     1200  // Turn on Red, Green and strobes
+#define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only one fading beacon and only on pin 3, 5,6or 9
+#define POS_LIGHT     1200  // Turn on Red, Green and strobes 
 #define LANDING_LIGHT 1800  // Turn on landing lifghts
 
 typedef struct 
@@ -27,7 +26,8 @@ typedef struct
 
 blinker_t blinkers[] = 
 {
-  { FIRST_LED_PIN, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
+  { FIRST_LED_PIN, 3, 1200,   40, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
+  { 4,             1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
   { 5,             1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
   { 6,             8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
   { 7,             1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
