@@ -6,9 +6,6 @@
 #define PWM_INPUT_MIN 800
 #define PWM_INPUT_MAX 2200
 
-#define FIRST_LED_PIN 3
-#define LAST_LED_PIN 13
-
 // Classification and PWM types.
 #define NOT_USED         0
 #define BEACON           1  // Always on when powered up. 
