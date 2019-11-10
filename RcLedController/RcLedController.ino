@@ -30,8 +30,8 @@ blinker_t blinkers[] =
   { 3, 3, 1200,   40, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
   { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // white
   { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
-  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
-  { 7, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
+  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
+  { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
   { 8, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
   { 9, 8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
   {10, 2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
