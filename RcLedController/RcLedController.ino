@@ -2,7 +2,10 @@
  * Asyncronuos multi blinks
 */
 
-#define PWM_INPUT 2
+#define PWM_INPUT_PIN 2
+#define PWM_INPUT_MIN 800
+#define PWM_INPUT_MAX 2200
+
 #define FIRST_LED_PIN 3
 #define LAST_LED_PIN 13
 
@@ -10,6 +13,7 @@
 #define NOT_USED         0
 #define BEACON           1  // Always on when powered up. 
 #define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only one fading beacon and only on pin 3, 5,6or 9
+#define SCOPE_TRIGGER    3
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes 
 #define LANDING_LIGHT 1800  // Turn on landing lifghts
 
@@ -26,19 +30,23 @@ typedef struct
 
 blinker_t blinkers[] = 
 {
-  { FIRST_LED_PIN, 3, 1200,   40, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
-  { 4,             1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
-  { 5,             1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
-  { 6,             8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
-  { 7,             1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
-  { 8,             2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
-  { 9,             3, 1500,   50, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
-  {10,             0,    0,    0, 0, 0, NOT_USED },     // Not used, yet... 
-  {11,             0,    0,    0, 0, 0, NOT_USED },     // Not used 
-  {12,             0,    0,    0, 0, 0, NOT_USED },     // Not used 
-  {LAST_LED_PIN,   0,    0,    0, 0, 0, NOT_USED },     // Not used 
+  { 3, 3, 1200,   40, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
+  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // white
+  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
+  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
+  { 7, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
+  { 8, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
+  { 9, 8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
+  {10, 2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
+  {11, 3, 1500,   50, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
+  {12, 0,    0,    0, 0, 0, NOT_USED },     // Not used, yet... 
+  {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER}  // 
 };
 
+#define FIRST_LED_PIN 3
+#define LAST_LED_PIN 13
+
+// Ugly globals....
 unsigned long currentTime;
 double pwmInput;
 
@@ -50,7 +58,7 @@ void setup()
     pinMode(blinkers[i].pin, OUTPUT);
   }
   
-  pinMode(PWM_INPUT, INPUT);
+  pinMode(PWM_INPUT_PIN, INPUT);
 
 }
 
@@ -65,8 +73,8 @@ void loop()
   if (currentTime - prevPwmTime >= pwmInterval)
   {
     prevPwmTime = currentTime;
-    pwmInput = pulseInLong(PWM_INPUT, HIGH, 30000);
-    if (pwmInput == 0) pwmInput = 1000; 
+    pwmInput = pulseInLong(PWM_INPUT_PIN, HIGH, 30000);
+    if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000; 
   }
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
@@ -75,7 +83,7 @@ void loop()
          blinkers[i].pin   < FIRST_LED_PIN || 
          blinkers[i].pin   > LAST_LED_PIN )
     { 
-        break;
+        i++; // Next
     }
     
     if (blinkers[i].type == FADING_BEACON)
