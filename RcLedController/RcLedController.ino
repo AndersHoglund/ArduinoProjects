@@ -9,7 +9,7 @@
 // Classification and PWM types.
 #define NOT_USED         0
 #define BEACON           1  // Always on when powered up. 
-#define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only one fading beacon and only on pin 3, 5,6or 9
+#define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only one fading beacon and only on pin 3, 5,6,9,10 and 11
 #define SCOPE_TRIGGER    3
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes 
 #define LANDING_LIGHT 1800  // Turn on landing lifghts
@@ -17,27 +17,28 @@
 typedef struct 
 {
   int pin;
-  int numBlinks;            // Number of blinks or strobes per period
+  int steps;                // Number of blinks, strobes or fade-steps per period
   unsigned long period;     // Overall total period time
   unsigned long duration;   // On time 
   unsigned long prevTime;
   int state;
   double type;
+  unsigned int ledValue;
 } blinker_t;
 
 blinker_t blinkers[] = 
 {
-  { 3, 3, 1200,   40, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
-  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT },    // white
-  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Red
-  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT },    // Green
-  { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
-  { 8, 1, 1000, 1000, 0, 0, LANDING_LIGHT },// White landding lights
-  { 9, 8,   10,    0, 0, 0, FADING_BEACON },// Heli tail red beacon. NOTE: There can be only one fading beacon
-  {10, 2, 2100,   90, 0, 0, BEACON },       // Red belly blinker beacon
-  {11, 3, 1500,   50, 0, 0, POS_LIGHT },    // Heli anti collition white tripple strobe
-  {12, 0,    0,    0, 0, 0, NOT_USED },     // Not used, yet... 
-  {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER}  // 
+  { 3, 3, 1200,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
+  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // white
+  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Red
+  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Green
+  { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
+  { 8, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
+  { 9, 8,   10,   10, 0, 0, FADING_BEACON, 0 }, // Heli tail red fading beacon. NOTE: There can be only one fading beacon
+  {10, 5,   20,   40, 0, 0, FADING_BEACON, 0 }, // Red belly blinker fading beacon.
+  {11, 3, 1500,   50, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
+  {12, 0,    0,    0, 0, 0, NOT_USED,      0 }, // Not used, yet... 
+  {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER, 0}  // 
 };
 
 #define FIRST_LED_PIN 3
@@ -80,25 +81,25 @@ void loop()
          blinkers[i].pin   < FIRST_LED_PIN || 
          blinkers[i].pin   > LAST_LED_PIN )
     { 
-        i++; // Next
+      continue; // Next
     }
     
     if (blinkers[i].type == FADING_BEACON)
     {
-      blinkers[i].prevTime = fade(blinkers[i].pin, blinkers[i].numBlinks, blinkers[i].period, blinkers[i].prevTime);
+      fade(&blinkers[i]);
+      continue; // Next
     }
 
-    if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].numBlinks -1)*blinkers[i].duration*2) )
+    if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].steps -1)*blinkers[i].duration*2) )
     {
       blinkers[i].state = 0; // Start over
     }
 
-    if (blinkers[i].state < (blinkers[i].numBlinks * 2)) // Two states per blink, on and off.
+    if (blinkers[i].state < (blinkers[i].steps * 2)) // Two states per blink, on and off.
     {
       if (currentTime - blinkers[i].prevTime >= blinkers[i].duration ) 
       {
-        blinkers[i].prevTime = currentTime;
-        blinkers[i].state = togglePinState(blinkers[i].pin, blinkers[i].state, blinkers[i].type);
+        togglePinState(&blinkers[i]);
       }
     }
   }
@@ -106,43 +107,36 @@ void loop()
 
 /**************************************************************/
 
-int togglePinState(int pin, int state, double type)
+void togglePinState(blinker_t * b)
 {
-  int newState;
-    if ( (state & 0x01)  == 0 && pwmInput > type)  
-    {
-      newState = HIGH;
-    } 
-    else 
-    {
-      newState = LOW;
-    }
+  b->prevTime = currentTime;
 
-    digitalWrite(pin, newState);
-
-    state++;
-    return state;
+  if ( (b->state & 0x01)  == 0 && pwmInput > b->type)
+  {
+    digitalWrite(b->pin, HIGH);
+  }
+  else
+  {
+    digitalWrite(b->pin, LOW);
+  }
+  b->state++;
 }
 
 /**************************************************************/
-
-unsigned long fade(int pin, int fadeStep, unsigned long period, unsigned long ledFadeTime)
+void fade(blinker_t * b)
 {
-  static int dir = 0;
-  static int fadeValue = 0;
 
- // fade in/out from min/max in increments of 5 points:
-  if (currentTime - ledFadeTime >= period)
+ // fade in/out from min/max in increments of steps points:
+  if (currentTime - b->prevTime >= b->period)
   {
-    analogWrite(pin, fadeValue);
+    analogWrite(b->pin, b->ledValue);
 
-    ledFadeTime = currentTime;
+    b->prevTime = currentTime;
 
-    if (dir == 0) {fadeValue += fadeStep;}
-    else {fadeValue -= fadeStep;}
+    if (b->state == 0) {b->ledValue += b->steps;}
+    else {b->ledValue -= b->steps;}
 
-    if (fadeValue >= 255) { dir = 1;}
-    if (fadeValue == 0)   { dir = 0;}
+    if (b->ledValue >= 255) { b->state = 1;}
+    if (b->ledValue <= 0)   { b->state = 0;}
   }
-  return ledFadeTime;
 }
