@@ -14,7 +14,7 @@
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes
 #define LANDING_LIGHT 1800  // Turn on landing lights
 
-typedef struct 
+typedef struct
 {
   int pin;
   int steps;                // Number of blinks, strobes or fade-steps per period
@@ -29,15 +29,15 @@ typedef struct
 blinker_t blinkers[] =
 {
   { 3, 3, 1200,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // white
-  { 5, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Red
+  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Red
+  { 5, 3, 1300,   45, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
   { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Green
-  { 7, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
-  { 8, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
+  { 7, 3, 1400,   50, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
+  { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // White
   { 9,10,    5,  300, 0, 0, FADING_BEACON, 0 }, // Heli tail red slow fading beacon.
   {10,12,    5,  200, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
-  {11, 3, 1500,   50, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  {12, 0,    0,    0, 0, 0, NOT_USED,      0 }, // Not used, yet...
+  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
+  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
   {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER, 0}  //
 };
 
@@ -55,13 +55,13 @@ void setup()
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
-  
+
   pinMode(PWM_INPUT_PIN, INPUT);
 
 }
 
 /**************************************************************/
-void loop() 
+void loop()
 {
 
   currentTime = millis();
@@ -72,7 +72,7 @@ void loop()
   {
     prevPwmTime = currentTime;
     pwmInput = pulseInLong(PWM_INPUT_PIN, HIGH, 30000);
-    if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000; 
+    if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;
   }
 
   for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
@@ -83,7 +83,7 @@ void loop()
     {
       continue; // Next
     }
-    
+
     if (blinkers[i].type == FADING_BEACON)
     {
       fade(&blinkers[i]);
