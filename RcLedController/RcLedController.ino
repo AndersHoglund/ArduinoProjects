@@ -7,23 +7,37 @@
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
 
+// Spektrum channel order
+#define AILE 0
+#define ELEV 1
+#define THRO 2
+#define ROLL 3
+#define GEAR 4
+#define AUX1 5
+#define AUX2 6
+#define AUX3 7
+#define AUX4 8
+#define AUX5 9
+
+// Only available at 22ms frame rate, not at 11ms.
+#define AUX6 10
+#define AUX7 11
+
+// Select what channel to use
+#define LED_CONTROL_CHANNEL AUX5
+
+// Select Arduino input pin
 #define INPUT_PIN 2
 
-// Only support SERIALRX_SPEKTRUM2048:
-// DSMx 11 bit frames
+// Only support DSMx SERIALRX_SPEKTRUM2048:
 #define SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT 12
 #define SPEK_FRAME_SIZE                      16
-#define SPEK_CHAN_SHIFT 3
-#define SPEK_CHAN_MASK 0x07
-
-#define SPEKTRUM_NEEDED_FRAME_INTERVAL     5 
-
+#define SPEK_CHAN_SHIFT                       3
+#define SPEK_CHAN_MASK                     0x07
+#define SPEKTRUM_NEEDED_FRAME_INTERVAL        5
 #define SPEKTRUM_BAUDRATE                115200
 
-#define LED_CONTROL_CHANNEL 6 // AUX2
-
 SoftwareSerial serialRx(INPUT_PIN, 15); // RX, TX
-
 #endif
 
 #ifdef USE_PWM_INPUT
@@ -145,6 +159,7 @@ void loop()
       }
     }
 
+    // Convert to PWM 1000 .. 1500 .. 2000 value range
     pwmInput = 988 + (spekChannelData[LED_CONTROL_CHANNEL] >> 1);   // 2048 mode
   }
 #endif
