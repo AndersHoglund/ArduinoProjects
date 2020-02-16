@@ -1,18 +1,44 @@
 /*
- * Asyncronuos multi blinks and fades
+   Asyncronuos multi blinks and fades
 */
+#define USE_SERIAL_RX_INPUT
+//#define USE_PWM_INPUT
 
-#define PWM_INPUT_PIN 2
+#ifdef USE_SERIAL_RX_INPUT
+#include <SoftwareSerial.h>
+
+#define INPUT_PIN 2
+
+// Only support SERIALRX_SPEKTRUM2048:
+// DSMx 11 bit frames
+#define SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT 12
+#define SPEK_FRAME_SIZE                      16
+#define SPEK_CHAN_SHIFT 3
+#define SPEK_CHAN_MASK 0x07
+
+#define SPEKTRUM_NEEDED_FRAME_INTERVAL     5 
+
+#define SPEKTRUM_BAUDRATE                115200
+
+#define LED_CONTROL_CHANNEL 6 // AUX2
+
+SoftwareSerial serialRx(INPUT_PIN, 15); // RX, TX
+
+#endif
+
+#ifdef USE_PWM_INPUT
+#define INPUT_PIN 2
 #define PWM_INPUT_MIN 800
 #define PWM_INPUT_MAX 2200
+#endif
 
 // Classification and PWM types.
 #define NOT_USED         0
 #define BEACON           1  // Always on when powered up.
 #define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only be fading beacons on pin 3, 5,6,9,10 and 11
 #define SCOPE_TRIGGER    3
-#define POS_LIGHT     1200  // Turn on Red, Green and strobes
-#define LANDING_LIGHT 1800  // Turn on landing lights
+#define POS_LIGHT     1400  // Turn on Red, Green and strobes
+#define LANDING_LIGHT 1700  // Turn on landing lights
 
 typedef struct
 {
@@ -34,8 +60,8 @@ blinker_t blinkers[] =
   { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Green
   { 7, 3, 1400,   50, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
   { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // White
-  { 9,10,    5,  300, 0, 0, FADING_BEACON, 0 }, // Heli tail red slow fading beacon.
-  {10,12,    5,  200, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
+  { 9, 20,1200,   10, 0, 0, FADING_BEACON, 0 }, // Heli tail red slow fading beacon.
+  {10, 24, 800,   10, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
   {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
   {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
   {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER, 0}  //
@@ -51,12 +77,21 @@ double pwmInput;
 /**************************************************************/
 void setup()
 {
-  for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++)
+  for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++)
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
 
-  pinMode(PWM_INPUT_PIN, INPUT);
+  pinMode(INPUT_PIN, INPUT);
+
+#ifdef DEBUG
+  Serial.begin(9600);
+  Serial.println("Goodnight moon!");
+#endif
+
+#ifdef USE_SERIAL_RX_INPUT
+  serialRx.begin(SPEKTRUM_BAUDRATE);
+#endif
 
 }
 
@@ -65,17 +100,68 @@ void loop()
 {
 
   currentTime = millis();
-  unsigned long prevPwmTime = 0;
+
+#ifdef USE_SERIAL_RX_INPUT
+  static unsigned long prevSerialRxTime = 0;
+  static unsigned char spekFrame[SPEK_FRAME_SIZE];
+  static unsigned char spekFramePosition = 0;
+  static bool rcFrameComplete = false;
+
+  unsigned long spekChannelData[SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT];
+
+  if (currentTime - prevSerialRxTime > SPEKTRUM_NEEDED_FRAME_INTERVAL)
+  {
+    prevSerialRxTime = currentTime;
+    spekFramePosition = 0;
+  }
+
+  if (spekFramePosition < SPEK_FRAME_SIZE && serialRx.available())
+  {
+    unsigned char c = serialRx.read();
+    spekFrame[spekFramePosition++] = c;
+    
+    if (spekFramePosition < SPEK_FRAME_SIZE)
+    {
+      rcFrameComplete = false;
+    }
+    else
+    {
+      rcFrameComplete = true;
+    }
+  }
+
+  if (rcFrameComplete)
+  {
+    rcFrameComplete = false;
+
+    // Get the RC control channel inputs
+    for (int b = 3; b < SPEK_FRAME_SIZE; b += 2)
+    {
+      const uint8_t spekChannel = 0x0F & (spekFrame[b - 1] >> SPEK_CHAN_SHIFT);
+
+      if (spekChannel < SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT)
+      {
+        spekChannelData[spekChannel] = ((spekFrame[b - 1] & SPEK_CHAN_MASK) << 8) + spekFrame[b];
+      }
+    }
+
+    pwmInput = 988 + (spekChannelData[LED_CONTROL_CHANNEL] >> 1);   // 2048 mode
+  }
+#endif
+
+#ifdef USE_PWM_INPUT
+  static unsigned long prevPwmTime = 0;
   const long pwmInterval = 1000;
 
   if (currentTime - prevPwmTime >= pwmInterval)
   {
     prevPwmTime = currentTime;
-    pwmInput = pulseInLong(PWM_INPUT_PIN, HIGH, 30000);
+    pwmInput = pulseInLong(INPUT_PIN, HIGH, 30000);
     if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;
   }
+#endif
 
-  for (int i = 0; i < sizeof(blinkers)/sizeof(blinker_t); i++ )
+  for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++ )
   {
     if ( blinkers[i].type == NOT_USED ||
          blinkers[i].pin   < FIRST_LED_PIN ||
@@ -90,14 +176,14 @@ void loop()
       continue; // Next
     }
 
-    if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].steps -1)*blinkers[i].duration*2) )
+    if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].steps - 1)*blinkers[i].duration * 2) )
     {
       blinkers[i].state = 0; // Start over
     }
 
     if (blinkers[i].state < (blinkers[i].steps * 2)) // Two states per blink, on and off.
     {
-      if (currentTime - blinkers[i].prevTime >= blinkers[i].duration )
+      if (currentTime - blinkers[i].prevTime > blinkers[i].duration )
       {
         togglePinState(&blinkers[i]);
       }
@@ -126,19 +212,31 @@ void togglePinState(blinker_t * b)
 void fade(blinker_t * b)
 {
 
- // fade in/out from min/max in increments of steps points:
-  if ((b->state < 2) && (currentTime - b->prevTime >= b->period))
+  // fade in/out from min/max in increments of steps points:
+  if ((b->state < 2) && (currentTime - b->prevTime >= b->duration))
   {
-    if      (b->state == 0)   {b->ledValue += b->steps;}
-    else if (b->state == 1)   {b->ledValue -= b->steps;}
+    if (b->state == 0)
+    {
+      b->ledValue += b->steps;
+    }
+    else if (b->state == 1)
+    {
+      b->ledValue -= b->steps;
+    }
 
     analogWrite(b->pin, b->ledValue);
     b->prevTime = currentTime;
 
-    if (b->ledValue >= 255) { b->state = 1;}
-    if (b->ledValue <= 0)   { b->state = 2;}
+    if (b->ledValue >= 255)
+    {
+      b->state = 1;
+    }
+    if (b->ledValue <= 0)
+    {
+      b->state = 2;
+    }
   }
-  else if ( (b->state == 2) && (currentTime - b->prevTime >= b->duration))
+  else if ( (b->state == 2) && (currentTime - b->prevTime >= b->period))
   {
     b->prevTime = currentTime;
     b->state = 0; //Start over.
