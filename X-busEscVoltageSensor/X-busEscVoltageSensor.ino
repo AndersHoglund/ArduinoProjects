@@ -32,6 +32,12 @@
 #define UINT_NO_DATA_LSB 0x7fff
 #define UINT_NO_DATA_MSB 0xff7f
 
+typedef union
+{
+  unsigned char raw[2];
+  unsigned int value;
+} msb_u;
+
 typedef struct
 {
   UINT8 identifier;       // Source device = 0x20
@@ -110,6 +116,26 @@ int once = 1;
 
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
 
+
+unsigned int LsbToMsb(unsigned int i)
+{
+  msb_u b;
+  unsigned char temp;
+
+  b.value = i;
+  //Swap bytes
+  temp     = b.raw[0];
+  b.raw[0] = b.raw[1];
+  b.raw[1] = temp;
+
+  return(b.value);
+}
+
+void requestEvent()
+{
+  Wire.write(TmBuffer.raw, sizeof(TmBuffer) );
+}
+
 void setup()
 {
   // All this work if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
@@ -119,24 +145,24 @@ void setup()
   
 //  pinMode(I2C_SCL_STRETCH_PIN,OUTPUT);
 //  digitalWrite(I2C_SCL_STRETCH_PIN,LOW);           // Force SCL low to keep Master idling till we are up and running.
-//  pinMode(13,OUTPUT);
-//  digitalWrite(13,LOW);           // Debug LED and scope trigger 
+  pinMode(13,OUTPUT);
+  digitalWrite(13,LOW);           // Debug LED and scope trigger
   
   Wire.begin(TELE_DEVICE_ESC);    // join i2c bus with a slave address
   Wire.onRequest(requestEvent);   // register event
 }
 
 
-void loop() 
+void loop()
 {
-//  if (once)
-//  {
-//    once = 0;  
+  if (once)
+  {
+    once = 0;
+    digitalWrite(13, HIGH);
 //    // Release SCL
 //    pinMode(I2C_SCL_STRETCH_PIN,INPUT);     // Open drain
 //    digitalWrite(I2C_SCL_STRETCH_PIN,HIGH);
-//    digitalWrite(13, HIGH); 
-//  }
+  }
 
   // read the value from the ADC:  
   sensorValue = analogRead(SENSOR_PIN);
@@ -154,30 +180,4 @@ void loop()
   TmBuffer.rpm.volts = LsbToMsb(centiVoltage);
 #endif
 
-}
-
-void requestEvent() 
-{
-  Wire.write(TmBuffer.raw, sizeof(TmBuffer) );
-}
-
-
-typedef union 
-{
-  unsigned char raw[2];
-  unsigned int value;
-} msb_u;
-
-unsigned int LsbToMsb(unsigned int i)
-{
-  msb_u b;
-  unsigned char temp;
-  
-  b.value = i;
-  //Swap bytes
-  temp     = b.raw[0];
-  b.raw[0] = b.raw[1];
-  b.raw[1] = temp;
-
-  return(b.value);
 }
