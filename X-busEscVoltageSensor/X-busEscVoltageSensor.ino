@@ -1,5 +1,11 @@
 // Spektrum X-BUS Telemetry ESC voltage sensor
 
+  // All this work if an Arduino Nano if the bootloader is removed, i.e. this sketch upload usinf an ISP programmer.
+  // With the bootloader, it also works if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
+  // Takes up to 4-5s to get Arduino Nano I2C up and running. Spektrum 8010T starts a single poll sequence after some 350mS, and thus gets no respons.
+  // Spektrum says: "We don't recommend clock stretching with the T-series receivers."
+  // Looks like SCL is driven high active, not by a pullup, on the scope. I.e. not I2C compliant.... Or?
+
 #include <Wire.h>
 
 // select the analog voltage input pin
@@ -19,7 +25,6 @@
 
 #define I2C_SDA_PIN A4
 #define I2C_SCL_PIN A5
-#define I2C_SCL_STRETCH_PIN 12
 
 //Select which TM frame to use
 #define USE_ESC_FRAME
@@ -138,13 +143,7 @@ void requestEvent()
 
 void setup()
 {
-  // All this work if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
-  // Takes up to 4-5s to get Arduino Nano I2C up and running. Spektrum 8010T starts a single poll sequence after some 350mS, and thus gets no respons.   
-  // Spektrum says: "We don't recommend clock stretching with the T-series receivers."
-  // Looks like SCL is driven high active, not by a pullup, on the scope. I.e. not I2C compliant.... Or?
-  
-//  pinMode(I2C_SCL_STRETCH_PIN,OUTPUT);
-//  digitalWrite(I2C_SCL_STRETCH_PIN,LOW);           // Force SCL low to keep Master idling till we are up and running.
+
   pinMode(13,OUTPUT);
   digitalWrite(13,LOW);           // Debug LED and scope trigger
   
@@ -159,9 +158,6 @@ void loop()
   {
     once = 0;
     digitalWrite(13, HIGH);
-//    // Release SCL
-//    pinMode(I2C_SCL_STRETCH_PIN,INPUT);     // Open drain
-//    digitalWrite(I2C_SCL_STRETCH_PIN,HIGH);
   }
 
   // read the value from the ADC:  
