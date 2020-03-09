@@ -34,14 +34,15 @@
 #define TELE_DEVICE_RPM (0x7e) // RPM
 
 #define NO_DATA 0xff
-#define UINT_NO_DATA_LSB 0x7fff
-#define UINT_NO_DATA_MSB 0xff7f
+#define INT_NO_DATA 0xffff
+#define UINT_NO_DATA_BE 0x7fff
+#define UINT_NO_DATA_LE 0xff7f
 
 typedef union
 {
   unsigned char raw[2];
   unsigned int value;
-} msb_u;
+} endianBuff_u;
 
 typedef struct
 {
@@ -122,9 +123,9 @@ int once = 1;
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
 
 
-unsigned int LsbToMsb(unsigned int i)
+unsigned int SwapEndian(unsigned int i)
 {
-  msb_u b;
+  endianBuff_u b;
   unsigned char temp;
 
   b.value = i;
@@ -168,12 +169,12 @@ void loop()
   unsigned short int centiVoltage= voltage *100;
 
 #ifdef USE_ESC_FRAME
-  TmBuffer.escGeneric.voltsInput = LsbToMsb(centiVoltage);
-  TmBuffer.escGeneric.tempBEC    = UINT_NO_DATA_MSB; // Odd...
+  TmBuffer.escGeneric.voltsInput = SwapEndian(centiVoltage);
+  TmBuffer.escGeneric.tempBEC    = UINT_NO_DATA_LE; // Odd...
 #endif
 
 #ifdef USE_RPM_FRAME
-  TmBuffer.rpm.volts = LsbToMsb(centiVoltage);
+  TmBuffer.rpm.volts = SwapEndian(centiVoltage);
 #endif
 
 }
