@@ -1,4 +1,4 @@
-// Spektrum X-BUS Telemetry ESC voltage sensor
+// Spektrum X-BUS Telemetry 6S LiPo cell voltage sensor
 
   // All this work if an Arduino Nano if the bootloader is removed, i.e. this sketch upload usinf an ISP programmer.
   // With the bootloader, it also works if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
@@ -21,8 +21,6 @@
 
 #include "spektrumTelemetrySensors.h"
 
-// Define the analog voltage input pins
-#define SENSOR_PINS (A0, A1, A2, A3, A6, A7)    
 #define I2C_SDA_PIN A4
 #define I2C_SCL_PIN A5
 
@@ -33,13 +31,11 @@
 #define UINT_NO_DATA_BE 0x7fff
 #define UINT_NO_DATA_LE 0xff7f
 
-#define K           0.00472199
-//#define K           5/1023
 #define CELLS       6
-#define MAX_CELLS   12
 
+// Globals
 // Resistor ladder as per LiPoMonResistorLadder.jpg
-double cell_const[MAX_CELLS] = 
+ double cell_const[] =
 {
   1.0000,
   2.1915,
@@ -55,8 +51,8 @@ double cell_const[MAX_CELLS] =
   11.0000
 };
 
-// Globals
-int sensorPin[CELLS] = {SENSOR_PINS};
+int sensorPin[CELLS] = {A0, A1, A2, A3, A6, A7};
+double prevVoltage = 0.0;
 
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
 
@@ -72,32 +68,38 @@ void setup()
 }
 
 void loop()
-{ 
-  double battVoltage = 0.0;
-  double prevVoltage = 0.0;
+{
+  prevVoltage = 0.0;
   
   for (int i = 0; i < CELLS; i++)
   {
     // Read raw voltage from analog pin.
-    double cellVoltage = analogRead(sensorPin[i]) * K;
-    
+    int sensorValue = analogRead(sensorPin[i]);
+
+    // ADC scaling
+    double cellVoltage = sensorValue * (double) 5/1023;
+//    double cellVoltage = sensorValue * (double) 0.00472199;
+
     // Scale reading to full voltage.
     cellVoltage *= cell_const[i];
-    double tmp = cellVoltage;
-    
+
     // Isolate current cell voltage.
+    double tmp = cellVoltage;
     cellVoltage -= prevVoltage;
-    battVoltage += cellVoltage;
     prevVoltage = tmp;
 
-    if (cellVoltage > 2.0)
+    unsigned short int centiVoltage = cellVoltage * 100;
+
+    if (cellVoltage > 1.0)
     {
-      TmBuffer.lipomon.cell[i] = (UINT16)cellVoltage*100; // Centivolts
+      TmBuffer.lipomon.cell[i] = (UINT16)centiVoltage;
     }
     else
     {
       TmBuffer.lipomon.cell[i] = UINT_NO_DATA_BE;
     }
+    // debug
+//    TmBuffer.lipomon.cell[i] = 300 + i;
   }
   TmBuffer.lipomon.temp = 0;
 }
