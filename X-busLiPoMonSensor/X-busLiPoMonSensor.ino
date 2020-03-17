@@ -33,28 +33,43 @@
 
 #define CELLS       6
 
-// Globals
+#define ADC_SCALE (5.0/1023.0)
+//#define ADC_SCALE 0.00472199
+
+#define CALIBRATION 1.060 // About 6% too low values on my prototype...
+#define SCALE (ADC_SCALE * CALIBRATION)
+
 // Resistor ladder as per LiPoMonResistorLadder.jpg
- double cell_const[] =
+#define R0 0.0
+#define R1 56.0
+#define R2 560.0
+#define R3 470.0
+#define R4 560.0
+#define R5 330.0
+#define R6 560.0
+#define R7 180.0
+#define R8 560.0
+#define R9 150.0
+#define R10 560.0
+#define R11 100.0
+
+// Constants
+double const cell_const[] =
 {
-  1.0000,
-  2.1915,
-  2.6970,
-  4.1111,
-  4.7333,
-  6.6000,
-  6.6000,
-  7.8293,
-  8.4667,
-  9.2353,
-  11.0000,
-  11.0000
+  (R0+R1)/R1,
+  (R2+R3)/R3,
+  (R4+R5)/R5,
+  (R6+R7)/R7,
+  (R8+R9)/R9,
+  (R10+R11)/R11
 };
 
-int sensorPin[CELLS] = {A0, A1, A2, A3, A6, A7};
-double prevVoltage = 0.0;
+int const sensorPin[CELLS] = {A0, A1, A2, A3, A6, A7};
 
+// Globals
+double prevVoltage = 0.0;
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
+
 
 void requestEvent()
 {
@@ -77,8 +92,7 @@ void loop()
     int sensorValue = analogRead(sensorPin[i]);
 
     // ADC scaling
-    double cellVoltage = sensorValue * (double) 5/1023;
-//    double cellVoltage = sensorValue * (double) 0.00472199;
+    double cellVoltage = sensorValue * SCALE;
 
     // Scale reading to full voltage.
     cellVoltage *= cell_const[i];
@@ -88,18 +102,17 @@ void loop()
     cellVoltage -= prevVoltage;
     prevVoltage = tmp;
 
-    unsigned short int centiVoltage = cellVoltage * 100;
+    UINT16 centiVoltage = cellVoltage * 100;
 
     if (cellVoltage > 1.0)
     {
-      TmBuffer.lipomon.cell[i] = (UINT16)centiVoltage;
+      TmBuffer.lipomon.cell[i] = centiVoltage;
     }
     else
     {
       TmBuffer.lipomon.cell[i] = UINT_NO_DATA_BE;
     }
-    // debug
-//    TmBuffer.lipomon.cell[i] = 300 + i;
   }
+
   TmBuffer.lipomon.temp = 0;
 }
