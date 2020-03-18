@@ -25,10 +25,10 @@
 #define SENSOR_PIN A0    
 
 // Define voltage divider resistor values
-#define RESISTOR_HIGH (330) // kOhms
-#define RESISTOR_LOW (33)
+#define RESISTOR_HIGH (330.0) // kOhms
+#define RESISTOR_LOW (33.0)
 
-#define ADC_SCALE 5/1023
+#define ADC_SCALE 5.0/1023.0
 #define SCALE ((double)((RESISTOR_LOW + RESISTOR_HIGH) / RESISTOR_LOW) * ADC_SCALE)
 
 #define I2C_SDA_PIN A4
@@ -63,9 +63,6 @@ typedef union
 
 
 // Globals
-
-int sensorValue = 0;  // variable to store the value coming from the sensor
-double scale = SCALE;
 int once = 1;
 
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
@@ -100,7 +97,6 @@ void setup()
   Wire.onRequest(requestEvent);   // register event
 }
 
-
 void loop()
 {
   if (once)
@@ -110,11 +106,11 @@ void loop()
   }
 
   // read the value from the ADC:  
-  sensorValue = analogRead(SENSOR_PIN);
+  unsigned int sensorValue = analogRead(SENSOR_PIN);
   
   // compute real voltage
-  double voltage = sensorValue * scale;
-  unsigned short int centiVoltage= voltage *100;
+  double voltage = (double)(sensorValue) * SCALE;
+  unsigned short int centiVoltage= (unsigned short int) (voltage * 100.0);
 
 #ifdef USE_ESC_FRAME
   TmBuffer.esc.voltsInput = SwapEndian(centiVoltage);
