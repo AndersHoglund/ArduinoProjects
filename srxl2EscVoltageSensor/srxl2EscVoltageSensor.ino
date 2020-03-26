@@ -36,9 +36,9 @@
 #define SRXL2_FRAME_TIMEOUT 50
 
 // Spektrum normal channel order
-#define AILE 0
-#define ELEV 1
-#define THRO 2
+#define THRO 0
+#define AILE 1
+#define ELEV 2
 #define ROLL 3
 #define GEAR 4
 #define AUX1 5
@@ -50,9 +50,6 @@
 // Only available at 22ms frame rate, not at 11ms.
 #define AUX6 10
 #define AUX7 11
-
-// A srxl2 ESC device seems to get its data on channel 0
-#define SRXL2_ESC 0
 
 // Select the PWM output pin
 #define PWM_OUTPUT_PIN 9
@@ -129,7 +126,7 @@ void userProvidedFillSrxlTelemetry(SrxlTelemetryData* pTelemetryData)
 void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
 {
   // Get throttle channel value and convert to 1000 - 1500 - 2000 pwm range
-  pwmPos = srxlChData.values[SRXL2_ESC] >> 6;    // 16-bit to 10-bit range (0 - 1023) 
+  pwmPos = srxlChData.values[THRO] >> 6;    // 16-bit to 10-bit range (0 - 1023) 
   pwmPos += 988;
 }
 

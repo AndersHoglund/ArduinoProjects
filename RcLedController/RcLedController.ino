@@ -1,16 +1,16 @@
 /*
    Asyncronuos multi blinks and fades
 */
-#define USE_SERIAL_RX_INPUT
-//#define USE_PWM_INPUT
+//#define USE_SERIAL_RX_INPUT
+#define USE_PWM_INPUT
 
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
 
 // Spektrum channel order
-#define AILE 0
-#define ELEV 1
-#define THRO 2
+#define THRO 0
+#define AILE 1
+#define ELEV 2
 #define ROLL 3
 #define GEAR 4
 #define AUX1 5
