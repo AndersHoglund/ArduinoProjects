@@ -677,9 +677,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
     // Validate checksum
     uint16_t crc = srxlCrc16(packet);
 
-// Endian-ness issue
-//    if((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc)
-    if((((uint16_t)packet[length - 1] << 8) | packet[length - 2]) != crc)
+    if((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc)
         return false;
 
     // Copy packet into our unioned buffer to avoid "strict aliasing" violations
