@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <Arduino.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -685,7 +684,6 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
     if((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc)
 #endif
     {
-      digitalWrite(13, HIGH);  // Illuminate CRC error
       return false;
     }
 
