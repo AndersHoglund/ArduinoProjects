@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <Arduino.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -676,9 +677,18 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
 
     // Validate checksum
     uint16_t crc = srxlCrc16(packet);
-
+#ifdef WORKAROUND_FC6250HX_CRC_ENDIAN_BUG
+    // Accept either big or little endian CRC, seems 6250 has it mixed up
+    if( ((((uint16_t)packet[length - 1] << 8) | packet[length - 2]) != crc) &&
+        ((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc) )
+#else
     if((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc)
-        return false;
+#endif
+    {
+      digitalWrite(13, HIGH);  // Illuminate CRC error
+      return false;
+    }
+
 
     // Copy packet into our unioned buffer to avoid "strict aliasing" violations
     SrxlBus* pBus = &srxlBus[busIndex];
