@@ -1,41 +1,43 @@
 // Spektrum SRXL2 to ESC PWM Brifge, mainly intended for as an ESC voltage telemetry sensor
 
-  // All this work if an Arduino Nano if the bootloader is removed, i.e. this sketch upload usinf an ISP programmer.
-  // With the bootloader, it also works if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
-  // Takes up to 4-5s to get Arduino Nano I2C up and running. Spektrum 8010T starts a single poll sequence after some 350mS, and thus gets no respons.
-  // Spektrum says: "We don't recommend clock stretching with the T-series receivers."
-  // Looks like SCL is driven high active, not by a pullup, on the scope. I.e. not I2C compliant.... Or?
+  // All this works on an Arduino Nano with Software Serial and Arduino ProMini(3.3V/8Mhz) HW UART.
+  // Bootloader could/should be removed, i.e. upload this sketch using an ISP programmer.
+  // Could not make it work with FC6258HX and anArduino ProMini(5V/16Mhz), too fast baudrate and/or too high signal leels.
 
 //#define USE_SOFTWARE_SERIAL
+//#define HAVE_FPU
+//¤define FLUSH_INPUT_BUFFER_AFTER_TRANSMIT
+#define USE_GLOBAL_SRXL2_CHANNEL_DATA
 
 #include <Servo.h>
 #ifdef USE_SOFTWARE_SERIAL
 #include <SoftwareSerial.h>
 #endif
 
-
 #include "spm_srxl.h"
 #include "spektrumTelemetrySensors.h"
 
-// Select SRXL2 input and output pins (need to be combined into one halfduplex line with a diod)
+// Select SRXL2 input and output pins (need to be combined into one halfduplex line with a zener diod, BAT85 works)
 
 #ifdef USE_SOFTWARE_SERIAL
-#define SRXL2_INPUT_PIN 2     //  -------o--------- SRXL2_DATA
-                              //         |
-#define SRXL2_OUTPUT_PIN 3    //  ---<|---
+#define SRXL2_INPUT_PIN 2     //  ------------o--------- SRXL2_DATA
+                              //              |
+#define SRXL2_OUTPUT_PIN 3    //  ---|<--------
 #else
-//Hardware UART might also need some pullup
+//Hardware UART might also need a pullup resistor, depending on SRXL2 hub/master. FC6250HX seems to lack PU. 3.3k or so works.
                               // VCC +--|===|--
                               //              |
 #define SRXL2_INPUT_PIN 1     //  ------------o--------- SRXL2_DATA
                               //              |
-#define SRXL2_OUTPUT_PIN 0    //  ---<|--------
+#define SRXL2_OUTPUT_PIN 0    //  ---|<--------
 #endif
 
 #define SRXL2_PORT_BAUDRATE_DEFAULT 115200
 #define SRXL2_FRAME_TIMEOUT 50
 
+
 // Spektrum normal channel order
+#define THROTTLE_MASK 1
 #define THRO 0
 #define AILE 1
 #define ELEV 2
@@ -64,10 +66,18 @@
 #define ADC_SCALE 5.0/1023.0
 #define SCALE ((double)((RESISTOR_LOW + RESISTOR_HIGH) / RESISTOR_LOW) * ADC_SCALE)
 
+#ifdef HAVE_FPU
+#define SRXL2_TO_PWM_SCALE  32768.0/600.0
+#define SRXL2_TO_PWM_OFFSET 900
+#else
+#define SRXL2_TO_PWM_SHIFT    6  // SCALE 64 really, 16-bit to 10-bit range (0 - 1023)
+#define SRXL2_TO_PWM_OFFSET 988
+#endif
+
 typedef union
 {
   unsigned char raw[2];
-  unsigned int value;
+  unsigned short int value;
 } endianBuff_u;
 
 #define IDENTIFIER  TELE_DEVICE_ESC
@@ -78,29 +88,34 @@ SoftwareSerial srxl2port(SRXL2_INPUT_PIN, SRXL2_OUTPUT_PIN); // RX, TX
 #endif
 
 Servo pwmDevice;      // create PWM (ESC/servo) object to control a servo
-int pwmPos = 1000;    // variable to store the PWM servo position
+unsigned int pwmPos = 1000;    // variable to store the PWM servo position
 
 int sensorValue = 0;  // variable to store the value coming from the sensor
-int once = 1;
+
 unsigned long currentTime;
 unsigned long prevPwmTime = 0;
 const long pwmInterval = 20;
 
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
 
-unsigned int SwapEndian(unsigned int i)
+unsigned short int BigEndian(unsigned short int i)
 {
   endianBuff_u b;
-  unsigned char temp;
 
-  b.value = i;
-  //Swap bytes
-  temp     = b.raw[0];
-  b.raw[0] = b.raw[1];
-  b.raw[1] = temp;
-
+  b.raw[0] = (i >> 8) & 0xff;
+  b.raw[1] = i & 0xff;
   return(b.value);
 }
+
+unsigned short int LittleEndian(unsigned short int i)
+{
+  endianBuff_u b;
+
+  b.raw[1] = (i >> 8) & 0xff;
+  b.raw[0] = i & 0xff;
+  return(b.value);
+}
+
 
 unsigned short int getCentiVoltage()
 {
@@ -125,9 +140,30 @@ void userProvidedFillSrxlTelemetry(SrxlTelemetryData* pTelemetryData)
 
 void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
 {
-  // Get throttle channel value and convert to 1000 - 1500 - 2000 pwm range
-  pwmPos = srxlChData.values[THRO] >> 6;    // 16-bit to 10-bit range (0 - 1023) 
-  pwmPos += 988;
+  unsigned int throttleChannelData;
+
+  if ( isFailsafe )
+  {
+    digitalWrite(13, HIGH);  // Illuminate failsafe and trigger scope
+    digitalWrite(13, LOW);
+  }
+
+// Get throttle channel data
+#ifdef USE_GLOBAL_SRXL2_CHANNEL_DATA
+  throttleChannelData = srxlChData.values[THRO];
+#else
+  if(pChannelData->mask & THROTTLE_MASK)
+  {
+      throttleChannelData = pChannelData->values[THRO];
+  }
+#endif
+
+// Convert throttle channel value to pwm servo value range
+#ifdef HAVE_FPU
+  pwmPos = SRXL2_TO_PWM_OFFSET + (throttleChannelData / SRXL2_TO_PWM_SCALE);
+#else
+  pwmPos = SRXL2_TO_PWM_OFFSET + (throttleChannelData >> SRXL2_TO_PWM_SHIFT);
+#endif
 }
 
 void userProvidedHandleVtxData(SrxlVtxData* pVtxData)
@@ -146,7 +182,15 @@ void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length)
   {
     srxl2port.write(pBuffer[i]);
   }
+
+  // Flush Tx buffer
   srxl2port.flush();
+
+#if FLUSH_INPUT_BUFFER_AFTER_TRANSMIT
+  // Flush the serial input buffer (The packet we just sent might be comming back in, depending on halfduplex hardware solution).
+  while (srxl2port.available() > 0) srxl2port.read();
+#endif
+
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -158,15 +202,21 @@ void setup()
   pinMode(SRXL2_OUTPUT_PIN, OUTPUT);
   
   pwmDevice.attach(PWM_OUTPUT_PIN);
+
   srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT);
+//  srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT, SERIAL_8N2);
 
   srxlInitDevice(SRXL_DEVICE_ID, SRXL_DEVICE_PRIORITY, SRXL_DEVICE_INFO, 0x01000000);
   srxlInitBus(0, 1, SRXL_SUPPORTED_BAUD_RATES);
+
+  //Debug LED off
+  pinMode(13,OUTPUT);
+  digitalWrite(13, LOW);
 }
 
 void loop()
 {
- currentTime = millis();
+  currentTime = millis();
 
   static unsigned long prevSerialRxTime = 0;
 
@@ -211,7 +261,7 @@ void loop()
   }
 
   unsigned short int v    = getCentiVoltage();
-  TmBuffer.esc.voltsInput = SwapEndian(v);
+  TmBuffer.esc.voltsInput = BigEndian(v);
   TmBuffer.esc.tempBEC    = UINT_NO_DATA_LE; // Odd...
 
   if (currentTime - prevPwmTime >= pwmInterval)
