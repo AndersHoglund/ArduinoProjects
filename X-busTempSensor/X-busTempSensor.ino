@@ -9,6 +9,10 @@
 
 #include <Wire.h>
 
+//#define USE_DEVICE_RPM  // Can not get this to work. Is it reserved, internal, and can't be used via X-buz ?
+//#define USE_DEVICE_MULTICYLENDER // Seems no support yet in either AR6610T or iX20 ???
+#define USE_DEVICE_TEXTGEN
+
 // A few basic types Spektrum depends on
 #define INT8 char
 #define INT16 short int
@@ -32,40 +36,77 @@
 #define I2C_SDA_PIN A4
 #define I2C_SCL_PIN A5
 
+#define NULL_DATA 0x00
 #define NO_DATA 0xff
 #define INT_NO_DATA 0xffff
+#define UCHAR_NO_DATA 0x7f
 #define UINT_NO_DATA_BE 0x7fff
 #define UINT_NO_DATA_LE 0xff7f
 
-//#define IDENTIFIER  TELE_DEVICE_TEMPERATURE   // legacy, DO NOT USE !
-//#define IDENTIFIER  TELE_DEVICE_RPM           //Reserved, internal, can't be used via X-buz
-//#define IDENTIFIER  TELE_DEVICE_MULTICYLINDER // Seems no support in either AR6610T or iX20 ???
+typedef union
+{
+  unsigned char raw[2];
+  unsigned int value;
+} endianBuff_u;
 
-// No real simple temp only device type available, lets try the Text Generator
+//#define IDENTIFIER  TELE_DEVICE_TEMPERATURE   // legacy, DO NOT USE !
+
+#ifdef USE_DEVICE_RPM
+#define IDENTIFIER  TELE_DEVICE_RPM
+#define TEMP_SENSOR_PIN A7
+#endif
+
+#ifdef USE_DEVICE_MULTICYLENDER
+#define IDENTIFIER  TELE_DEVICE_MULTICYLINDER
+#endif
+
+#ifdef USE_DEVICE_TEXTGEN
 #define IDENTIFIER  TELE_DEVICE_TEXTGEN
 #define TEXTLINES 9     // Title plus 8 text lines
 #define TEXTLINE_LEN 13
 #define MOTORS 4
 
 // Globals
-int once = 1;
 int temp[MOTORS+1]; // 1 based motor numbers.
 const int sensor[MOTORS+1] = {0, A7, A6, A3, A2};
-
 char textBuffer[TEXTLINES][TEXTLINE_LEN] = {"MOTOR TEMP", " ", " ", " ", " ", " ", " ", " ", " "};
+#endif
 
+#ifdef USE_DEVICE_RPM
+// Big endians
+UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, UCHAR_NO_DATA, NO_DATA, UCHAR_NO_DATA, NO_DATA, UCHAR_NO_DATA, NO_DATA, NULL_DATA, NULL_DATA, NULL_DATA, NULL_DATA, NULL_DATA, NULL_DATA, NULL_DATA, NULL_DATA};
+#else
 UN_TELEMETRY TmBuffer = {IDENTIFIER, 0, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA, NO_DATA};
+#endif
+
+unsigned int SwapEndian(unsigned int i)
+{
+  endianBuff_u b;
+  unsigned char temp;
+
+  b.value = i;
+  //Swap bytes
+  temp     = b.raw[0];
+  b.raw[0] = b.raw[1];
+  b.raw[1] = temp;
+
+  return(b.value);
+}
 
 void requestEvent()
 {
   Wire.write(TmBuffer.raw, sizeof(TmBuffer) );
+#ifdef USE_DEVICE_TEXTGEN
   TmBuffer.textgen.lineNumber++;
   if (TmBuffer.textgen.lineNumber >= TEXTLINES) TmBuffer.textgen.lineNumber=0;
+#endif
 }
 
 void setup()
 {
+#ifdef USE_DEVICE_TEXTGEN
   TmBuffer.textgen.lineNumber = 0;
+#endif
   
   Wire.begin(IDENTIFIER);         // join i2c bus with a slave address
   Wire.onRequest(requestEvent);   // register event
@@ -73,6 +114,19 @@ void setup()
 
 void loop()
 {
+#ifdef USE_DEVICE_RPM
+  // read the value from the ADC
+  int sensorValue = analogRead(TEMP_SENSOR_PIN);
+  sensorValue *= SCALE;
+  sensorValue = (sensorValue * 9/5) + 32; // C to F
+
+  //DEBUG Test value only, until we have found out the SCALEing value for the thermistor.
+  sensorValue = 101; //F
+
+  TmBuffer.rpm.temperature = SwapEndian(sensorValue);
+#endif
+
+#ifdef USE_DEVICE_TEXTGEN
   for (int motor=1; motor <= MOTORS; motor++ )
   {
     // read the value from the ADC:  
@@ -87,4 +141,5 @@ void loop()
   }
   
   strcpy(TmBuffer.textgen.text, textBuffer[TmBuffer.textgen.lineNumber]) ;
+#endif
 }
