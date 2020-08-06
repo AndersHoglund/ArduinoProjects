@@ -58,6 +58,11 @@ typedef union
 
 #ifdef USE_DEVICE_MULTICYLENDER
 #define IDENTIFIER  TELE_DEVICE_MULTICYLINDER
+#define MOTORS 4
+
+// Globals
+int temp[MOTORS]; // 0 based motor numbers.
+const int sensor[MOTORS] = {A7, A6, A3, A2};
 #endif
 
 #ifdef USE_DEVICE_TEXTGEN
@@ -124,6 +129,23 @@ void loop()
   sensorValue = 101; //F
 
   TmBuffer.rpm.temperature = SwapEndian(sensorValue);
+#endif
+
+#ifdef USE_DEVICE_MULTICYLENDER
+  for (int motor=0; motor < MOTORS; motor++ )
+  {
+    // read the value from the ADC:
+    int sensorValue = analogRead(sensor[motor]);
+    // compute real temperature
+    temp[motor] = (sensorValue) * SCALE;
+
+    //DEBUG Test value only, until we have found out the SCALEing value for the thermistor.
+    temp[motor] = 34+motor;
+
+    // compute real temperature
+    TmBuffer.multiCylinder.temperature[motor] = temp[motor] - 30;
+  }
+
 #endif
 
 #ifdef USE_DEVICE_TEXTGEN
