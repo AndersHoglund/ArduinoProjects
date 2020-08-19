@@ -10,7 +10,7 @@
 #include <Wire.h>
 
 //#define USE_DEVICE_RPM  // Can not get this to work. Is it reserved, internal, and can't be used via X-buz ?
-//#define USE_DEVICE_MULTICYLENDER // Seems no support yet in either AR6610T or iX20 ???
+//#define USE_DEVICE_MULTICYLINDER // Seems no support yet in either AR6610T or iX20 ???
 #define USE_DEVICE_TEXTGEN
 
 // A few basic types Spektrum depends on
@@ -56,7 +56,7 @@ typedef union
 #define TEMP_SENSOR_PIN A7
 #endif
 
-#ifdef USE_DEVICE_MULTICYLENDER
+#ifdef USE_DEVICE_MULTICYLINDER
 #define IDENTIFIER  TELE_DEVICE_MULTICYLINDER
 #define MOTORS 4
 
@@ -131,7 +131,7 @@ void loop()
   TmBuffer.rpm.temperature = SwapEndian(sensorValue);
 #endif
 
-#ifdef USE_DEVICE_MULTICYLENDER
+#ifdef USE_DEVICE_MULTICYLINDER
   for (int motor=0; motor < MOTORS; motor++ )
   {
     // read the value from the ADC:
