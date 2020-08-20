@@ -7,11 +7,15 @@
   // Spektrum says: "We don't recommend clock stretching with the T-series receivers."
   // Looks like SCL is driven high active, not by a pullup, on the scope. I.e. not I2C compliant.... Or?
 
-#include <Wire.h>
-
 //#define USE_DEVICE_RPM  // Can not get this to work. Is it reserved, internal, and can't be used via X-buz ?
 //#define USE_DEVICE_MULTICYLINDER // Seems no support yet in either AR6610T or iX20 ???
 #define USE_DEVICE_TEXTGEN
+
+#include "Thermistor.h"
+#include <Wire.h>
+
+#define I2C_SDA_PIN A4
+#define I2C_SCL_PIN A5
 
 // A few basic types Spektrum depends on
 #define INT8 char
@@ -25,16 +29,6 @@
 #define UINT64 unsigned long long int
 
 #include "spektrumTelemetrySensors.h"
-
-// Define Temp sensor scaling values 
-// Spektrum temp sensor scaling needs to be determined in some way. TBD TBD TBD
-#define RESISTOR_HIGH (330.0) // kOhms
-#define RESISTOR_LOW (33.0)
-#define ADC_SCALE 5.0/1023.0
-#define SCALE ((double)((RESISTOR_LOW + RESISTOR_HIGH) / RESISTOR_LOW) * ADC_SCALE)
-
-#define I2C_SDA_PIN A4
-#define I2C_SCL_PIN A5
 
 #define NULL_DATA 0x00
 #define NO_DATA 0xff
@@ -100,11 +94,12 @@ unsigned int SwapEndian(unsigned int i)
 
 void requestEvent()
 {
-  Wire.write(TmBuffer.raw, sizeof(TmBuffer) );
 #ifdef USE_DEVICE_TEXTGEN
   TmBuffer.textgen.lineNumber++;
   if (TmBuffer.textgen.lineNumber >= TEXTLINES) TmBuffer.textgen.lineNumber=0;
+  strcpy(TmBuffer.textgen.text, textBuffer[TmBuffer.textgen.lineNumber]);
 #endif
+  Wire.write(TmBuffer.raw, sizeof(TmBuffer) );
 }
 
 void setup()
@@ -120,13 +115,12 @@ void setup()
 void loop()
 {
 #ifdef USE_DEVICE_RPM
-  // read the value from the ADC
-  int sensorValue = analogRead(TEMP_SENSOR_PIN);
-  sensorValue *= SCALE;
+  // read the value from the ADC/Thermistor
+  int sensorValue = getTemperature(TEMP_SENSOR_PIN);
   sensorValue = (sensorValue * 9/5) + 32; // C to F
 
   //DEBUG Test value only, until we have found out the SCALEing value for the thermistor.
-  sensorValue = 101; //F
+  //sensorValue = 101; //F
 
   TmBuffer.rpm.temperature = SwapEndian(sensorValue);
 #endif
@@ -135,14 +129,12 @@ void loop()
   for (int motor=0; motor < MOTORS; motor++ )
   {
     // read the value from the ADC:
-    int sensorValue = analogRead(sensor[motor]);
-    // compute real temperature
-    temp[motor] = (sensorValue) * SCALE;
+    int sensorValue = getTemperature(sensor[motor]);
+    temp[motor] = (sensorValue);
 
     //DEBUG Test value only, until we have found out the SCALEing value for the thermistor.
-    temp[motor] = 34+motor;
+    //temp[motor] = 34+motor;
 
-    // compute real temperature
     TmBuffer.multiCylinder.temperature[motor] = temp[motor] - 30;
   }
 
@@ -152,16 +144,13 @@ void loop()
   for (int motor=1; motor <= MOTORS; motor++ )
   {
     // read the value from the ADC:  
-    int sensorValue = analogRead(sensor[motor]);
-
-    // compute real temperature
-    temp[motor] = (sensorValue) * SCALE;
+    int sensorValue = getTemperature(sensor[motor]);
+    temp[motor] = (sensorValue);
 
     //DEBUG Test value only, until we have found out the SCALEing value for the thermistor. 
-    temp[motor] = 34+motor;
+    //temp[motor] = 34+motor;
+
     sprintf(textBuffer[motor], "M%d: %d C", motor, temp[motor]); 
   }
-  
-  strcpy(TmBuffer.textgen.text, textBuffer[TmBuffer.textgen.lineNumber]) ;
 #endif
 }
