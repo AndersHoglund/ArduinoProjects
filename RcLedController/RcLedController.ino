@@ -1,8 +1,9 @@
 /*
    Asyncronuos multi blinks and fades
 */
-//#define USE_SERIAL_RX_INPUT
-#define USE_PWM_INPUT
+#define USE_SERIAL_RX_INPUT
+//#define USE_PWM_INPUT
+//#define DEBUG
 
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
@@ -24,7 +25,7 @@
 #define AUX7 11
 
 // Select what channel to use
-#define LED_CONTROL_CHANNEL AUX5
+#define LED_CONTROL_CHANNEL AUX7
 
 // Select Arduino input pin
 #define INPUT_PIN 2
@@ -78,7 +79,7 @@ blinker_t blinkers[] =
   {10, 24, 800,   10, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
   {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
   {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
-  {13, 1, 2500,   10, 0, 0, SCOPE_TRIGGER, 0}  //
+  {13, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0}   // White landding lights
 };
 
 #define FIRST_LED_PIN 3
@@ -116,21 +117,22 @@ void loop()
   currentTime = millis();
 
 #ifdef USE_SERIAL_RX_INPUT
-  static unsigned long prevSerialRxTime = 0;
+  static unsigned long lastSerialRxTime = 0;
   static unsigned char spekFrame[SPEK_FRAME_SIZE];
   static unsigned char spekFramePosition = 0;
   static bool rcFrameComplete = false;
 
   unsigned long spekChannelData[SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT];
 
-  if (currentTime - prevSerialRxTime > SPEKTRUM_NEEDED_FRAME_INTERVAL)
+  if (currentTime - lastSerialRxTime > SPEKTRUM_NEEDED_FRAME_INTERVAL)
   {
-    prevSerialRxTime = currentTime;
     spekFramePosition = 0;
   }
 
   if (spekFramePosition < SPEK_FRAME_SIZE && serialRx.available())
   {
+    lastSerialRxTime = currentTime;
+
     unsigned char c = serialRx.read();
     spekFrame[spekFramePosition++] = c;
     
