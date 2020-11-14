@@ -1,9 +1,8 @@
 /*
    Asyncronuos multi blinks and fades
 */
-#define USE_SERIAL_RX_INPUT
-//#define USE_PWM_INPUT
-//#define DEBUG
+//#define USE_SERIAL_RX_INPUT
+#define USE_PWM_INPUT
 
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
