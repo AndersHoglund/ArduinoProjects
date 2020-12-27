@@ -61,7 +61,7 @@ const long pwmInterval = 22;
 
 // Array to store the input PWM servo position
 uint16_t pwmPos[NO_OF_INPUT_CHANNELS];
-uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, YAW, GEAR, AUX1, AUX2, AUX3, AUX4,  AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
+uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, ELEV, GEAR, AUX1, AUX2, AUX3, AUX4,  AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
 
 static byte Jitter;
 static byte Jitter2;
