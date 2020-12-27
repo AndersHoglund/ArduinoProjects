@@ -15,7 +15,7 @@
 #define SRXL2_PORT_BAUDRATE_DEFAULT 115200
 #define SRXL2_FRAME_TIMEOUT 22
 #define srxl2port Serial
-#define NO_OF_INPUT_CHANNELS 12
+#define NO_OF_INPUT_CHANNELS 18
 #define NO_OF_OUTPUT_CHANNELS 18
 
 #define MAX_NO_OF_CHANNELS 20
@@ -59,8 +59,9 @@ unsigned long currentTime;
 unsigned long prevPwmTime = 0;
 const long pwmInterval = 22;
 
-// Array to store the PWM servo position
+// Array to store the input PWM servo position
 uint16_t pwmPos[NO_OF_INPUT_CHANNELS];
+uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, YAW, GEAR, AUX1, AUX2, AUX3, AUX4,  AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
 
 static byte Jitter;
 static byte Jitter2;
@@ -257,13 +258,6 @@ void ServoSetup()
   OCR2B = 137;                    // Set counter B for about 2000us (137 is 22ms, 124 20ms/10, where 20ms is 50Hz);
 
   for(iCount=2;iCount< NO_OF_OUTPUT_CHANNELS+2;iCount++) pinMode(iCount, OUTPUT);    // Set all pins used to output:
-
-//  OutPortTable[18] = &PORTC;    // In 18 channel mode set channel 18 and 19 to a dummy pin that does not exist.
-//  OutPortTable[19] = &PORTC;
-//  OutBitTable[18] = 128;
-//  OutBitTable[19] = 128;
-//
-//  DDRC = 63;                      //Set analog pins A0 - A5 as digital output.
 }
 
 ///////////////////////// SRXL2 channel interface //////////////////////////////
@@ -273,7 +267,7 @@ void ServoSetup()
     // Get throttle channel value and convert to 1000 - 1500 - 2000 pwm range
     for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
     {
-      pwmPos[i] = srxlChData.values[i] >> 5;    // 16-bit to 11-bit range (0 - 2048)
+      pwmPos[i] = srxlChData.values[inputChannelMap[i]] >> 5;    // 16-bit to 11-bit range (0 - 2048)
       if (pwmPos[i] == 0)
       {
         pwmPos[i] = 1024;
