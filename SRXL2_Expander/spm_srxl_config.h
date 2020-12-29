@@ -1,10 +1,3 @@
-//#pragma once
-//
-//#define SRXL2_PORT_BAUDRATE_DEFAULT    115200
-//#define SRXL_SUPPORTED_BAUD_RATES SRXL2_PORT_BAUDRATE_DEFAULT
-
-#define SRXL_CRC_OPTIMIZE_MODE SRXL_CRC_OPTIMIZE_SPEED
-
 /*
 MIT License
 Copyright (c) 2019 Horizon Hobby, LLC
@@ -30,6 +23,8 @@ SOFTWARE.
 #ifndef _SRXL_CONFIG_H_
 #define _SRXL_CONFIG_H_
 
+#define SRXL_CRC_OPTIMIZE_MODE SRXL_CRC_OPTIMIZE_SPEED
+
 //### USER PROVIDED HEADER FUNCTIONS AND FORWARD DECLARATIONS ###
 
 // User included headers/declarations to access interface functions required below
@@ -48,13 +43,21 @@ void userProvidedHandleVtxData(SrxlVtxData* pVtxData);
 //    Flight Controller = 0x31 (or possibly 0x30 if connected to Base Receiver instead of Remote Receiver)
 //    Smart ESC = 0x40
 //    VTX = 0x81
-// NOTE: This value is not used internally -- it is passed as a parameter to srxlInit() in the example app
- #define SRXL_DEVICE_FC              0x30 //Base Receiver
-//#define SRXL_DEVICE_ESC             0x40
-//#define SRXL_DEVICE_VTX             0x81
 
- #define SRXL_DEVICE_ID              (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_FlightController])//SrxlDevType_ESC
-//#define SRXL_REQ_DEVICE_ID          (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_FlightController])     
+// Available Device Types
+#define SRXL_DEVICE_NONE       (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_None])
+#define SRXL_DEVICE_BASE_RX    (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_Receiver])
+#define SRXL_DEVICE_REMOTE_RX  (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_RemoteReceiver])
+#define SRXL_DEVICE_FC         (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_FlightController])
+#define SRXL_DEVICE_ESC        (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_ESC])
+#define SRXL_DEVICE_SERVO1     (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_SRXLServo1])
+#define SRXL_DEVICE_SERVO2     (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_SRXLServo2])
+#define SRXL_DEVICE_VTX        (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_VTX])
+#define SRXL_DEVICE_BRDC       (SRXL_DEFAULT_ID_OF_TYPE[SrxlDevType_Broadcast])
+
+// Select actual Device id to use from above list.
+#define SRXL_DEVICE_ID         SRXL_DEVICE_SERVO1
+#define SRXL_REQ_DEVICE_ID     SRXL_DEVICE_FC
 
 // Set this to the desired priority level for sending telemetry, ranging from 0 to 100.
 // Generally, this number should be 10 times the number of different telemetry packets to regularly send.
