@@ -11,6 +11,8 @@
 //#define USE_DEVICE_MULTICYLINDER // Seems no support yet in either AR6610T or iX20 ???
 #define USE_DEVICE_TEXTGEN
 
+#define MOTORS 2
+
 #include "Thermistor.h"
 #include <Wire.h>
 
@@ -37,6 +39,11 @@
 #define UINT_NO_DATA_BE 0x7fff
 #define UINT_NO_DATA_LE 0xff7f
 
+#define MAX_MOTORS 4
+#if (MOTORS > MAX_MOTORS)
+error
+#endif
+
 typedef union
 {
   unsigned char raw[2];
@@ -52,22 +59,21 @@ typedef union
 
 #ifdef USE_DEVICE_MULTICYLINDER
 #define IDENTIFIER  TELE_DEVICE_MULTICYLINDER
-#define MOTORS 4
+
 
 // Globals
 int temp[MOTORS]; // 0 based motor numbers.
-const int sensor[MOTORS] = {A7, A6, A3, A2};
+const int sensor[] = {A7, A6, A3, A2};
 #endif
 
 #ifdef USE_DEVICE_TEXTGEN
 #define IDENTIFIER  TELE_DEVICE_TEXTGEN
 #define TEXTLINES 9     // Title plus 8 text lines
 #define TEXTLINE_LEN 13
-#define MOTORS 4
 
 // Globals
 int temp[MOTORS+1]; // 1 based motor numbers.
-const int sensor[MOTORS+1] = {0, A7, A6, A3, A2};
+const int sensor[] = {0, A7, A6, A3, A2};
 char textBuffer[TEXTLINES][TEXTLINE_LEN] = {"MOTOR TEMP", " ", " ", " ", " ", " ", " ", " ", " "};
 #endif
 
@@ -145,12 +151,15 @@ void loop()
   {
     // read the value from the ADC:  
     int sensorValue = getTemperature(sensor[motor]);
-    temp[motor] = (sensorValue);
 
-    //DEBUG Test value only, until we have found out the SCALEing value for the thermistor. 
-    //temp[motor] = 34+motor;
-
-    sprintf(textBuffer[motor], "M%d: %d C", motor, temp[motor]); 
+    if (sensorValue > -20 && sensorValue < 250)
+    {
+      sprintf(textBuffer[motor], "M%d: %d C", motor, sensorValue);
+    }
+    else
+    {
+      sprintf(textBuffer[motor], "M%d: --", motor);
+    }
   }
 #endif
 }
