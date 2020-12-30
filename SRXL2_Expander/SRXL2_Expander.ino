@@ -75,7 +75,7 @@ static byte Jitter4;
 static unsigned int iCount;
 static volatile uint8_t *OutPortTable[MAX_NO_OF_CHANNELS] = {&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC};
 static uint8_t OutBitTable[MAX_NO_OF_CHANNELS] = {4,8,16,32,64,128,1,2,4,8,16,32,1,2,4,8,16,32,64,128};
-static unsigned int ServoPW[MAX_NO_OF_CHANNELS] = {DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET};//10015
+static unsigned int ServoPW[MAX_NO_OF_CHANNELS];
 static byte Timer2Toggle;
 static volatile uint8_t *OutPort1A = &PORTD;
 static volatile uint8_t *OutPort1B = &PORTB;
@@ -103,6 +103,7 @@ void setup()
     {
       pwmPos[i] = DSMX_2K_CENTER + DSMX_2K_OFFSET;
     }
+    ServoPW[i] = pwmPos[i];
   }
 
   srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT);
