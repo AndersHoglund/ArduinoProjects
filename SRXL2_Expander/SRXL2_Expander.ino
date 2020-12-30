@@ -93,6 +93,18 @@ static int ChannelCount;
 
 void setup()
 {
+  for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
+  {
+    if (inputChannelMap[i] == THRO )
+    {
+      pwmPos[i] = DSMX_2K_LOW + DSMX_2K_OFFSET;
+    }
+    else
+    {
+      pwmPos[i] = DSMX_2K_CENTER + DSMX_2K_OFFSET;
+    }
+  }
+
   srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT);
   srxlInitDevice(SRXL_DEVICE_ID, SRXL_DEVICE_PRIORITY, SRXL_DEVICE_INFO, 0x01000001);
   srxlInitBus(0, 1, SRXL_SUPPORTED_BAUD_RATES);
