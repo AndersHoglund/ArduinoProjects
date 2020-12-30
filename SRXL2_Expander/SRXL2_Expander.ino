@@ -50,6 +50,10 @@ error
 #define X7 18
 #define X8 19
 
+#define DSMX_2K_LOW     341  // -100%
+#define DSMX_2K_CENTER 1024  //    0%
+#define DSMX_2K_HIGH   1706  // +100%
+#define DSMX_2K_OFFSET 8991
  
 #define YES 1
 #define NO 0
@@ -71,7 +75,7 @@ static byte Jitter4;
 static unsigned int iCount;
 static volatile uint8_t *OutPortTable[MAX_NO_OF_CHANNELS] = {&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC};
 static uint8_t OutBitTable[MAX_NO_OF_CHANNELS] = {4,8,16,32,64,128,1,2,4,8,16,32,1,2,4,8,16,32,64,128};
-static unsigned int ServoPW[MAX_NO_OF_CHANNELS] = {8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991,8991};//10015
+static unsigned int ServoPW[MAX_NO_OF_CHANNELS] = {DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET,DSMX_2K_OFFSET};//10015
 static byte Timer2Toggle;
 static volatile uint8_t *OutPort1A = &PORTD;
 static volatile uint8_t *OutPort1B = &PORTB;
@@ -264,15 +268,22 @@ void ServoSetup()
 
   void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
   {
-    // Get throttle channel value and convert to 1000 - 1500 - 2000 pwm range
+    // Get channel values.
     for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
     {
       pwmPos[i] = srxlChData.values[inputChannelMap[i]] >> 5;    // 16-bit to 11-bit range (0 - 2048)
       if (pwmPos[i] == 0)
       {
-        pwmPos[i] = 1024;
+        if (inputChannelMap[i] == THRO )
+        {
+          pwmPos[i] = DSMX_2K_LOW;
+        }
+        else
+        {
+          pwmPos[i] = DSMX_2K_CENTER;
+        }
       }
-      pwmPos[i] += 8991;
+      pwmPos[i] += DSMX_2K_OFFSET;
     }
   }
 
