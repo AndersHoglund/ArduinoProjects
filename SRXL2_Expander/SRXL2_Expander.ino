@@ -86,11 +86,6 @@ static volatile uint8_t *OutPortNext1B = &PORTB;
 static uint8_t OutBitNext1A = 0;
 static uint8_t OutBitNext1B = 0;
 
-static long ServoStepsHD[MAX_NO_OF_CHANNELS] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static long StepsToGo[MAX_NO_OF_CHANNELS] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-static int ChannelCount;
-
-
 void setup()
 {
   for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
@@ -173,15 +168,6 @@ void loop() {
 volatile void PPM() //Move servos every 22ms to the desired position.
 {
   wdt_reset();// Watchdog zurücksetzen. Reset the Watchdog.
-
-  for(ChannelCount = 0; ChannelCount < NO_OF_OUTPUT_CHANNELS; ChannelCount++)
-  {
-    if(StepsToGo[ChannelCount] > 0)
-    {
-      ServoPW[ChannelCount] += ServoStepsHD[ChannelCount];
-      StepsToGo[ChannelCount] --;
-    }
-  }
 }
 
 ISR(TIMER1_COMPA_vect) // Interrupt routine for timer 1 compare A. Used for timing each pulse width for the servo PWM.
