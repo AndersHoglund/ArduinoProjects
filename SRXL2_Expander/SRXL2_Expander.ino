@@ -79,12 +79,12 @@ static unsigned int ServoPW[MAX_NO_OF_CHANNELS];
 static byte Timer2Toggle;
 static volatile uint8_t *OutPort1A = &PORTD;
 static volatile uint8_t *OutPort1B = &PORTB;
-static uint8_t OutBit1A = 4;
-static uint8_t OutBit1B = 16;
+static uint8_t OutBit1A = 0;
+static uint8_t OutBit1B = 0;
 static volatile uint8_t *OutPortNext1A = &PORTD;
 static volatile uint8_t *OutPortNext1B = &PORTB;
-static uint8_t OutBitNext1A = 4;
-static uint8_t OutBitNext1B = 16;
+static uint8_t OutBitNext1A = 0;
+static uint8_t OutBitNext1B = 0;
 
 static long ServoStepsHD[MAX_NO_OF_CHANNELS] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static long StepsToGo[MAX_NO_OF_CHANNELS] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
