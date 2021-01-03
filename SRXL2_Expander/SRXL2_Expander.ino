@@ -281,14 +281,14 @@ void defaultServoValues()
 
 void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
 {
+  int noOfChvalues = 0;
+
   if (isFailsafe)
   {
     defaultServoValues();
   }
   else
   {
-    validServoPacket = true;
-
     // Get channel values.
     for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
     {
@@ -304,7 +304,14 @@ void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFails
           pwmPos[i] = DSMX_2K_CENTER;
         }
       }
+      else
+      {
+        noOfChvalues++; // Count valid data
+      }
       pwmPos[i] += DSMX_2K_OFFSET;
+
+      // Did we get any valid data ??
+      if (noOfChvalues > 0) validServoPacket = true;
     }
   }
 }
