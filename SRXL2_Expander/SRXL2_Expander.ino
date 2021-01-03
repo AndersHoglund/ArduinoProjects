@@ -9,8 +9,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <avr/interrupt.h>
-#include "spm_srxl.h"
 #include <avr/wdt.h>//watchdog
+#include "spm_srxl.h"
 
 #define SRXL2_PORT_BAUDRATE_DEFAULT 115200
 #define SRXL2_FRAME_TIMEOUT 22
@@ -63,6 +63,9 @@ unsigned long currentTime;
 unsigned long prevPwmTime = 0;
 const long pwmInterval = 22;
 
+boolean validServoPacket   = false;
+boolean timersRunning = false;
+
 // Array to store the input PWM servo position
 uint16_t pwmPos[NO_OF_INPUT_CHANNELS];
 uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, ELEV, GEAR, AUX1, AUX2, AUX3, AUX4,  AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
@@ -88,24 +91,13 @@ static uint8_t OutBitNext1B = 0;
 
 void setup()
 {
-  for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
-  {
-    if (inputChannelMap[i] == THRO )
-    {
-      pwmPos[i] = DSMX_2K_LOW + DSMX_2K_OFFSET;
-    }
-    else
-    {
-      pwmPos[i] = DSMX_2K_CENTER + DSMX_2K_OFFSET;
-    }
-    ServoPW[i] = pwmPos[i];
-  }
+  initServoOutputs();
+  defaultServoValues();
 
   srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT);
   srxlInitDevice(SRXL_DEVICE_ID, SRXL_DEVICE_PRIORITY, SRXL_DEVICE_INFO, 0x01000001);
   srxlInitBus(0, 1, SRXL_SUPPORTED_BAUD_RATES);
 
-  ServoSetup();             // Initiate timers and misc.
   wdt_enable(WDTO_250MS);   // Set watchdog to 0.25 s and start.
 }
 
@@ -168,6 +160,7 @@ void loop() {
 volatile void PPM() //Move servos every 22ms to the desired position.
 {
   wdt_reset();// Watchdog zurücksetzen. Reset the Watchdog.
+  if (validServoPacket && (!timersRunning)) ServoSetup();
 }
 
 ISR(TIMER1_COMPA_vect) // Interrupt routine for timer 1 compare A. Used for timing each pulse width for the servo PWM.
@@ -260,13 +253,42 @@ void ServoSetup()
   OCR2A = 106;                     // 93 Set counter A for about 500us before counter B below; 106 for 220us
   OCR2B = 137;                    // Set counter B for about 2000us (137 is 22ms, 124 20ms/10, where 20ms is 50Hz);
 
+  timersRunning = true;
+}
+
+void initServoOutputs()
+{
   for(iCount=2;iCount< NO_OF_OUTPUT_CHANNELS+2;iCount++) pinMode(iCount, OUTPUT);    // Set all pins used to output:
+}
+
+void defaultServoValues()
+{
+  for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
+  {
+    if (inputChannelMap[i] == THRO )
+    {
+      pwmPos[i] = DSMX_2K_LOW + DSMX_2K_OFFSET;
+    }
+    else
+    {
+      pwmPos[i] = DSMX_2K_CENTER + DSMX_2K_OFFSET;
+    }
+    ServoPW[i] = pwmPos[i];
+  }
 }
 
 ///////////////////////// SRXL2 channel interface //////////////////////////////
 
-  void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
+void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
+{
+  if (isFailsafe)
   {
+    defaultServoValues();
+  }
+  else
+  {
+    validServoPacket = true;
+
     // Get channel values.
     for (int i=0; i < NO_OF_INPUT_CHANNELS; i++)
     {
@@ -285,6 +307,7 @@ void ServoSetup()
       pwmPos[i] += DSMX_2K_OFFSET;
     }
   }
+}
 
   void uartSetBaud(uint8_t uart, uint32_t baudRate) // Automatic adjust SRXL2 baudrate.
   {
@@ -297,6 +320,5 @@ void ServoSetup()
     {
       srxl2port.write(pBuffer[i]);
     }
-    srxl2port.flush();
   }
  
