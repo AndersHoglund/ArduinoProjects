@@ -3,6 +3,8 @@
 */
 //#define USE_SERIAL_RX_INPUT
 #define USE_PWM_INPUT
+#define USE_OPEN_TX_6POS_SWITCH
+
 
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
@@ -51,8 +53,18 @@ SoftwareSerial serialRx(INPUT_PIN, 15); // RX, TX
 #define BEACON           1  // Always on when powered up.
 #define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only be fading beacons on pin 3, 5,6,9,10 and 11
 #define SCOPE_TRIGGER    3
+#ifdef USE_OPEN_TX_6POS_SWITCH
+#define LIGHTS_OFF    1000  (Open Tx S1)
+#define POS_LIGHT     1200  // Turn on Red, Green and strobes (Open Tx S2)
+#define LANDING_LIGHT 1300  // Turn on landing lights         (Open Tx S3)
+#define BACKUP_LIGHT  1500  // Turn on landing lights         (Open Tx S4)
+#define S5            1700
+#define S6            1900
+#else
 #define POS_LIGHT     1400  // Turn on Red, Green and strobes
 #define LANDING_LIGHT 1700  // Turn on landing lights
+#define BACKUP_LIGHT  1900  // Turn on landing lights
+#endif
 
 typedef struct
 {
@@ -76,9 +88,9 @@ blinker_t blinkers[] =
   { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // White
   { 9, 20,1200,   10, 0, 0, FADING_BEACON, 0 }, // Heli tail red slow fading beacon.
   {10, 24, 800,   10, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
-  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
-  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landding lights
-  {13, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0}   // White landding lights
+  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landing lights
+  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landing lights
+  {13, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0}   // White backup/reverse lights
 };
 
 #define FIRST_LED_PIN 3
