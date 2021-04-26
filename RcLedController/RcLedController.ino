@@ -29,7 +29,8 @@
 #define LED_CONTROL_CHANNEL AUX7
 
 // Select Arduino input pin
-#define INPUT_PIN 2
+#define INPUT_PIN A0
+#define OUTPUT_PIN A1
 
 // Only support DSMx SERIALRX_SPEKTRUM2048:
 #define SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT 12
@@ -39,11 +40,11 @@
 #define SPEKTRUM_NEEDED_FRAME_INTERVAL        5
 #define SPEKTRUM_BAUDRATE                115200
 
-SoftwareSerial serialRx(INPUT_PIN, 15); // RX, TX
+SoftwareSerial serialRx(INPUT_PIN, OUTPUT_PIN); // RX, TX
 #endif
 
 #ifdef USE_PWM_INPUT
-#define INPUT_PIN 2
+#define INPUT_PIN A0
 #define PWM_INPUT_MIN 800
 #define PWM_INPUT_MAX 2200
 #endif
@@ -80,6 +81,7 @@ typedef struct
 
 blinker_t blinkers[] =
 {
+  { 2, 3, 1100,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
   { 3, 3, 1200,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
   { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Red
   { 5, 3, 1300,   45, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
@@ -93,8 +95,8 @@ blinker_t blinkers[] =
   {13, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0}   // White backup/reverse lights
 };
 
-#define FIRST_LED_PIN 3
-#define LAST_LED_PIN 13
+#define FIRST_LED_PIN blinkers[0].pin
+#define LAST_LED_PIN  blinkers[sizeof(blinkers)/sizeof(blinker_t)-1].pin
 
 // Ugly globals....
 unsigned long currentTime;
