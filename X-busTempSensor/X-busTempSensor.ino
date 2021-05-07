@@ -7,9 +7,9 @@
   // Spektrum says: "We don't recommend clock stretching with the T-series receivers."
   // Looks like SCL is driven high active, not by a pullup, on the scope. I.e. not I2C compliant.... Or?
 
-//#define USE_DEVICE_RPM  // Can not get this to work. Is it reserved, internal, and can't be used via X-buz ?
-//#define USE_DEVICE_MULTICYLINDER // Seems no support yet in either AR6610T or iX20 ???
-#define USE_DEVICE_TEXTGEN
+//#define USE_DEVICE_RPM         // Can not get this to work. It is internal and reserved, can't be used via X-buz.
+#define USE_DEVICE_MULTICYLINDER // Seems no support yet in iX20. Works fine with DX18g1 and AR6610T
+//#define USE_DEVICE_TEXTGEN     // Works fine on both DX18 and iX20.
 
 #define MOTORS 2
 
@@ -138,12 +138,19 @@ void loop()
     int sensorValue = getTemperature(sensor[motor]);
     temp[motor] = (sensorValue);
 
-    //DEBUG Test value only, until we have found out the SCALEing value for the thermistor.
-    //temp[motor] = 34+motor;
+    // Range check
+    if (temp[motor] < 30)
+    {
+      temp[motor] = 30;
+    }
+
+    if (temp[motor] > 284)
+    {
+      temp[motor] = 284;
+    }
 
     TmBuffer.multiCylinder.temperature[motor] = temp[motor] - 30;
   }
-
 #endif
 
 #ifdef USE_DEVICE_TEXTGEN
