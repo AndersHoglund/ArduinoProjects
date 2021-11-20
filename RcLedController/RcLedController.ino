@@ -1,8 +1,8 @@
 /*
    Asyncronuos multi blinks and fades
 */
-//#define USE_SERIAL_RX_INPUT
-#define USE_PWM_INPUT
+#define USE_SERIAL_RX_INPUT
+//#define USE_PWM_INPUT
 #define USE_OPEN_TX_6POS_SWITCH
 
 
