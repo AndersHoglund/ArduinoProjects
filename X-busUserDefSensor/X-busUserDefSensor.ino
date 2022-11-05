@@ -1,4 +1,4 @@
-// Spektrum X-BUS Telemetry 6S LiPo cell voltage sensor
+// Spektrum X-BUS Telemetry Angle of attack via the "user defined" sensor
 
   // All this work if an Arduino Nano if the bootloader is removed, i.e. this sketch upload usinf an ISP programmer.
   // With the bootloader, it also works if Rx is powered up 5s after the Arduino Nano, fails if powered up at the same time. Clock stretching does not help.
