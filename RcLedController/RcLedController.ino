@@ -1,9 +1,9 @@
 /*
    Asyncronuos multi blinks and fades
 */
-#define USE_SERIAL_RX_INPUT
-//#define USE_PWM_INPUT
-#define USE_OPEN_TX_6POS_SWITCH
+//#define USE_SERIAL_RX_INPUT
+#define USE_PWM_INPUT
+//#define USE_OPEN_TX_6POS_SWITCH
 
 
 #ifdef USE_SERIAL_RX_INPUT
@@ -58,13 +58,13 @@ SoftwareSerial serialRx(INPUT_PIN, OUTPUT_PIN); // RX, TX
 #define LIGHTS_OFF    1000  (Open Tx S1)
 #define POS_LIGHT     1200  // Turn on Red, Green and strobes (Open Tx S2)
 #define LANDING_LIGHT 1300  // Turn on landing lights         (Open Tx S3)
-#define BACKUP_LIGHT  1500  // Turn on landing lights         (Open Tx S4)
+#define BACKUP_LIGHT  1500  // Turn on reverse backup lights  (Open Tx S4)
 #define S5            1700
 #define S6            1900
 #else
 #define POS_LIGHT     1400  // Turn on Red, Green and strobes
 #define LANDING_LIGHT 1700  // Turn on landing lights
-#define BACKUP_LIGHT  1900  // Turn on landing lights
+#define BACKUP_LIGHT  1900  // Turn on reverse backup lights
 #endif
 
 typedef struct
