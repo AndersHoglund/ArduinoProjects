@@ -3,8 +3,6 @@
 */
 //#define USE_SERIAL_RX_INPUT
 #define USE_PWM_INPUT
-//#define USE_OPEN_TX_6POS_SWITCH
-
 
 #ifdef USE_SERIAL_RX_INPUT
 #include <SoftwareSerial.h>
@@ -49,23 +47,22 @@ SoftwareSerial serialRx(INPUT_PIN, OUTPUT_PIN); // RX, TX
 #define PWM_INPUT_MAX 2200
 #endif
 
-// Classification and PWM types.
+// Classification.
 #define NOT_USED         0
-#define BEACON           1  // Always on when powered up.
-#define FADING_BEACON    2  // Always on when powered up. NOTE: There can be only be fading beacons on pin 3, 5,6,9,10 and 11
-#define SCOPE_TRIGGER    3
-#ifdef USE_OPEN_TX_6POS_SWITCH
-#define LIGHTS_OFF    1000  (Open Tx S1)
-#define POS_LIGHT     1200  // Turn on Red, Green and strobes (Open Tx S2)
-#define LANDING_LIGHT 1300  // Turn on landing lights         (Open Tx S3)
-#define BACKUP_LIGHT  1500  // Turn on reverse backup lights  (Open Tx S4)
-#define S5            1700
-#define S6            1900
-#else
-#define POS_LIGHT     1400  // Turn on Red, Green and strobes
-#define LANDING_LIGHT 1700  // Turn on landing lights
-#define BACKUP_LIGHT  1900  // Turn on reverse backup lights
-#endif
+#define POWER_BEACON     1  // Always on when powered up.
+#define SW_BEACON        2  // On/off controllable beacon.
+#define BLINKER          3
+#define SCOPE_TRIGGER    4
+
+// PWM limits
+#define LIGHTS_OFF    1000  // (Open Tx S1)
+#define BEACON        1200     // NOTE: There can be only be fading beacons on pin 3, 5,6,9,10 and 11
+#define POS_LIGHT     1300  // Turn on Red, Green nav light   (Open Tx S2)
+#define ACL_STROBE    1400  // Turn on anti collition strobes (Open Tx S3)
+#define LANDING_LIGHT 1500  // Turn on landing lights         (Open Tx S4)
+#define BACKUP_LIGHT  1700  // Turn on reverse backup lights  (Open Tx S5)
+#define ALL_ON        1900
+
 
 typedef struct
 {
@@ -75,24 +72,25 @@ typedef struct
   unsigned long duration;   // On and off time for multi blinkers, off time for faders.
   unsigned long prevTime;
   int state;
-  double type;
+  double pwm;
   unsigned int ledValue;
+  unsigned int type;
 } blinker_t;
 
 blinker_t blinkers[] =
 {
-  { 2, 3, 1100,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  { 3, 3, 1200,   40, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Red
-  { 5, 3, 1300,   45, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // Green
-  { 7, 3, 1400,   50, 0, 0, POS_LIGHT,     0 }, // Heli anti collition white tripple strobe
-  { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0 }, // White
-  { 9, 20,1200,   10, 0, 0, FADING_BEACON, 0 }, // Heli tail red slow fading beacon.
-  {10, 24, 800,   10, 0, 0, FADING_BEACON, 0 }, // Red belly fading beacon, slightly faster.
-  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landing lights
-  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0 }, // White landing lights
-  {13, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0}   // White backup/reverse lights
+  { 2, 3, 1100,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { 3, 3, 1200,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Red
+  { 5, 3, 1300,   45, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Green
+  { 7, 3, 1400,   50, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // White
+  { 9, 20,1200,   10, 0, 0, BEACON,        0, POWER_BEACON  }, // Red slow fading beacon. allways on when powered
+  {10, 24, 800,   10, 0, 0, BEACON,        0, SW_BEACON  }, // Red belly fading beacon, slightly faster.
+  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
+  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
+  {13, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0, BLINKER }   // White backup/reverse lights
 };
 
 #define FIRST_LED_PIN blinkers[0].pin
@@ -200,11 +198,22 @@ void loop()
       continue; // Next
     }
 
-    if (blinkers[i].type == FADING_BEACON)
+    if (blinkers[i].type == POWER_BEACON)
     {
       fade(&blinkers[i]);
       continue; // Next
     }
+
+    if (blinkers[i].type == SW_BEACON)
+    {
+      if (pwmInput > blinkers[i].pwm)
+      {
+        fade(&blinkers[i]);
+      }
+      continue; // Next
+    }
+
+    //if (blinkers[i].type == BLINKER)
 
     if (currentTime - blinkers[i].prevTime > blinkers[i].period - ((blinkers[i].steps - 1)*blinkers[i].duration * 2) )
     {
@@ -227,7 +236,7 @@ void togglePinState(blinker_t * b)
 {
   b->prevTime = currentTime;
 
-  if ( (b->state & 0x01)  == 0 && pwmInput > b->type)
+  if ( (b->state & 0x01)  == 0 && pwmInput > b->pwm)
   {
     digitalWrite(b->pin, HIGH);
   }
@@ -241,7 +250,6 @@ void togglePinState(blinker_t * b)
 /**************************************************************/
 void fade(blinker_t * b)
 {
-
   // fade in/out from min/max in increments of steps points:
   if ((b->state < 2) && (currentTime - b->prevTime >= b->duration))
   {
