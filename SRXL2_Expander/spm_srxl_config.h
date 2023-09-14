@@ -27,6 +27,10 @@ SOFTWARE.
 
 //### USER PROVIDED HEADER FUNCTIONS AND FORWARD DECLARATIONS ###
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // User included headers/declarations to access interface functions required below
 #include "uart.h"
 void userProvidedFillSrxlTelemetry(SrxlTelemetryData* pTelemetry);
@@ -166,5 +170,9 @@ static inline void srxlEnterCriticalSection(void)
 static inline void srxlExitCriticalSection(void)
 {
 }
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // _SRXL_CONFIG_H_

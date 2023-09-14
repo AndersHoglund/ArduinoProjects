@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2019 Horizon Hobby, LLC
+Copyright (c) 2019-2023 Horizon Hobby, LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -94,6 +94,8 @@ SrxlFullID srxlFwdPgmDevice = {0, 0};  // Device that should accept Forward Prog
 uint8_t srxlFwdPgmBuffer[FWD_PGM_MAX_DATA_SIZE] = {0};
 uint8_t srxlFwdPgmBufferLength = 0;
 #endif
+
+static uint8_t srxlInternalTest = 0;
 
 // Include additional header and externs if using STM32 hardware acceleration
 #if(SRXL_CRC_OPTIMIZE_MODE > SRXL_CRC_OPTIMIZE_SIZE)
@@ -233,6 +235,7 @@ static inline SrxlRcvrEntry* srxlAddReceiverEntry(SrxlBus* pBus, SrxlDevEntry de
         pRcvr->deviceID = devEntry.deviceID;
         pRcvr->busBits = (1u << pBus->fullID.busIndex);
         pRcvr->info = devEntry.info;
+        pRcvr->fades = 0xFFFF;
 
         // If this receiver is full-range, insert into our sorted list after the other full-range telemetry receivers
         if(pRcvr->info & SRXL_DEVINFO_TELEM_FULL_RANGE)
@@ -286,7 +289,7 @@ static inline SrxlRcvrEntry* srxlChooseTelemRcvr(void)
     {
         for(uint8_t i = 0; i < srxlRx.rcvrCount; ++i)
         {
-            if(srxlRx.rcvrSorted[i]->channelMask)
+            if(srxlRx.rcvrSorted[i] && srxlRx.rcvrSorted[i]->channelMask)
                 return srxlRx.rcvrSorted[i];
         }
     }
@@ -424,7 +427,7 @@ bool srxlInitBus(uint8_t busIndex, uint8_t uart, uint8_t baudSupported)
     pBus->fullID.busIndex = busIndex;
     pBus->rxDevCount = 0;
     pBus->rxDevPrioritySum = 0;
-    pBus->requestID = (srxlThisDev.devEntry.deviceID == 0x10) ? 0x11 : 0;
+    pBus->requestID = (srxlThisDev.devEntry.deviceID == 0x10) ? 0x10 : 0;
     pBus->baudSupported = baudSupported;
     pBus->baudRate = SRXL_BAUD_115200;
     pBus->frameErrCount = 0;
@@ -432,6 +435,7 @@ bool srxlInitBus(uint8_t busIndex, uint8_t uart, uint8_t baudSupported)
     // Default remote receiver is automatically master -- everyone else figures it out during handshake
     pBus->master = (srxlThisDev.devEntry.deviceID == 0x10);
     pBus->pMasterRcvr = (srxlThisDev.devEntry.deviceID == 0x10) ? &srxlRx.rcvr[0] : 0;
+    pBus->pollOnceMore = true;
     pBus->initialized = true;
 
     return true;
@@ -505,7 +509,7 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
             pBus->srxlOut.control.payload.cmd = SRXL_CTRL_CMD_CHANNEL;
             pBus->srxlOut.control.payload.replyID = replyID;
 
-            channelMask = srxlChData.mask;
+            channelMask = pBus->channelOutMask;
         }
         else // == SRXL_CMD_CHANNEL_FS
         {
@@ -537,7 +541,10 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
         // Set bits in packet for channels we populated, and clear those mask bits if it was part of a normal channel data command
         pBus->srxlOut.control.payload.channelData.mask = channelMask;
         if(srxlCmd == SRXL_CMD_CHANNEL)
+        {
             srxlChData.mask &= ~channelMask;
+            pBus->channelOutMask &= ~channelMask;
+        }
 
         pBus->srxlOut.header.length = SRXL_CTRL_BASE_LENGTH + 7 + (2 * channelIndex);
     }
@@ -568,7 +575,7 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
     {
         pBus->srxlOut.header.packetType = SRXL_HANDSHAKE_ID;
         pBus->srxlOut.header.length = sizeof(SrxlHandshakePacket);
-        pBus->srxlOut.handshake.payload.srcDevID = srxlThisDev.devEntry.deviceID;
+        pBus->srxlOut.handshake.payload.srcDevID = pBus->fullID.deviceID;
         pBus->srxlOut.handshake.payload.destDevID = replyID;
         pBus->srxlOut.handshake.payload.priority = srxlThisDev.devEntry.priority;
         pBus->srxlOut.handshake.payload.baudSupported = pBus->baudSupported;
@@ -599,7 +606,7 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
         if(srxlRx.pTelemRcvr && (pBus->srxlOut.telemetry.destDevID == srxlRx.pTelemRcvr->deviceID))
         {
             // Don't mark telemetry as having been sent if we are sending it ourself over RF
-            if(pBus->srxlOut.telemetry.destDevID != srxlThisDev.pRcvr->deviceID)
+            if(!srxlThisDev.pRcvr || pBus->srxlOut.telemetry.destDevID != srxlThisDev.pRcvr->deviceID)
             {
                 srxlTelemetrySent();
                 // Clear telemetry buffer after sending so we don't repeatedly display old data
@@ -619,7 +626,7 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
         pBus->srxlOut.bind.data.guid = 0;
         pBus->srxlOut.bind.data.uid = 0;
     }
-    else if(srxlCmd == SRXL_CMD_REQ_BIND)
+    else if(srxlCmd == SRXL_CMD_REQ_BIND_INFO)
     {
         pBus->srxlOut.header.packetType = SRXL_BIND_ID;
         pBus->srxlOut.header.length = sizeof(SrxlBindPacket);
@@ -643,6 +650,16 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
         pBus->srxlOut.bind.deviceID = replyID;
         pBus->srxlOut.bind.data = srxlBindInfo;
     }
+#ifdef SRXL_ENABLE_INTERNAL
+    else if(srxlCmd == SRXL_CMD_INTERNAL)
+    {
+        pBus->srxlOut.header.packetType = SRXL_SPM_INTERNAL;
+        pBus->srxlOut.internal.payload.srcDevID = srxlThisDev.devEntry.deviceID;
+        pBus->srxlOut.internal.payload.destDevID = replyID;
+        pBus->srxlOut.internal.payload.test = srxlInternalTest;
+        pBus->srxlOut.header.length = srxlFillInternal(&pBus->srxlOut.internal.payload);
+    }
+#endif
 
     // Compute CRC over entire SRXL packet (excluding the 2 CRC bytes at the end)
     uint16_t crc = srxlCrc16(pBus->srxlOut.raw);
@@ -663,7 +680,6 @@ void srxlSend(SrxlBus* pBus, SRXL_CMD srxlCmd, uint8_t replyID)
     @param  length:     Length in bytes of received packet data
     @return bool:       True if a valid packet was received, else false
 */
-
 bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
 {
     // Validate parameters
@@ -676,17 +692,8 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
 
     // Validate checksum
     uint16_t crc = srxlCrc16(packet);
-#ifdef WORKAROUND_FC6250HX_CRC_ENDIAN_BUG
-    // Accept either big or little endian CRC, seems 6250 has it mixed up
-    if( ((((uint16_t)packet[length - 1] << 8) | packet[length - 2]) != crc) &&
-        ((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc) )
-#else
     if((((uint16_t)packet[length - 2] << 8) | packet[length - 1]) != crc)
-#endif
-    {
-      return false;
-    }
-
+        return false;
 
     // Copy packet into our unioned buffer to avoid "strict aliasing" violations
     SrxlBus* pBus = &srxlBus[busIndex];
@@ -741,7 +748,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
         }
 #endif
         // Channel Data or Failsafe Data
-        else
+        else if(pCtrlData->cmd == SRXL_CTRL_CMD_CHANNEL || pCtrlData->cmd == SRXL_CTRL_CMD_CHANNEL_FS)
         {
             bool isFailsafe = (pCtrlData->cmd == SRXL_CTRL_CMD_CHANNEL_FS);
             srxlChData.rssi = pCtrlData->channelData.rssi;
@@ -781,6 +788,9 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
                         srxlChData.mask |= channelMaskBit;
                     }
                 }
+#ifdef SRXL_INCLUDE_MASTER_CODE
+                srxlSetOutgoingChannelMask(srxlChData.mask);
+#endif
             }
 
             srxlChDataIsFailsafe = isFailsafe;  // TODO: Can we still assume this???
@@ -809,6 +819,17 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
                     pBus->state = SrxlState_SendSetBindInfo;
                     pBus->txFlags.broadcastBindInfo = 0;
                 }
+                else if(pBus->txFlags.getBindInfo)
+                {
+                    // pBus->requestID was already set when srxlRequestBindInfo was called
+                    pBus->state = SrxlState_RequestBindInfo;
+                    pBus->txFlags.getBindInfo = 0;
+                }
+                else if(pBus->txFlags.sendInternal)
+                {
+                    pBus->state = SrxlState_SendInternal;
+                    pBus->txFlags.sendInternal = 0;
+                }
             }
             else if(pCtrlData->replyID == pBus->fullID.deviceID)
             {
@@ -822,24 +843,73 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
         if(length < sizeof(SrxlHandshakePacket))
             return false;
 
-        // If this is an unprompted handshake (dest == 0) from a higher device ID, then we're the master
         SrxlHandshakeData* pHandshake = &(pRx->handshake.payload);
-        if((pHandshake->destDevID == 0) && (pHandshake->srcDevID > pBus->fullID.deviceID))
+
+        // If this is an unprompted handshake (dest == 0)
+        if(pHandshake->destDevID == 0)
         {
-            // Send a reply immediately to get the slave to shut up
-            pBus->state = SrxlState_SendHandshake;
-            pBus->requestID = pHandshake->srcDevID;
-            pBus->baudSupported = SRXL_SUPPORTED_BAUD_RATES;
-            srxlRun(busIndex, 0);
-            pBus->requestID = pBus->fullID.deviceID;
-            pBus->state = SrxlState_SendHandshake;
-            pBus->master = true;
-            pBus->pMasterRcvr = &srxlRx.rcvr[0];
+            // If we were already running, the device probably browned out and didn't properly listen for 50ms on startup
+            if(pBus->state >= SrxlState_Running)
+            {
+#ifdef SRXL_INCLUDE_MASTER_CODE
+                // If we're already the master then just send the final handshake again
+                if(pBus->master)
+                {
+                    pBus->requestID = 0xFF;
+                    pBus->state = SrxlState_SendHandshake;
+                }
+#endif
+            }
+            // Else we're handshaking
+            else
+            {
+                // If there is a lower device ID on the bus, we're not the master, so just listen
+                if(pHandshake->srcDevID < pBus->fullID.deviceID)
+                {
+                    pBus->master = false;
+                    pBus->state = SrxlState_ListenForHandshake;
+                }
+#ifdef SRXL_INCLUDE_MASTER_CODE
+                // Else if it's from a higher device ID
+                else if(pHandshake->srcDevID > pBus->fullID.deviceID)
+                {
+                    // Make sure we haven't already seen another device who should be the master
+                    uint8_t i;
+                    for(i = 0; i < pBus->rxDevCount; ++i)
+                    {
+                        if(pBus->rxDev[i].deviceID < pBus->fullID.deviceID)
+                            break;
+                    }
+                    if(i == pBus->rxDevCount)
+                    {
+                        // We should be the master, so send a reply immediately to get them to shut up
+                        pBus->state = SrxlState_SendHandshake;
+                        pBus->requestID = pHandshake->srcDevID;
+                        pBus->baudSupported = SRXL_SUPPORTED_BAUD_RATES;
+                        srxlRun(busIndex, 0);
+
+                        // Then take on role of master and start the handshake process
+                        pBus->requestID = pBus->fullID.deviceID;
+                        pBus->state = SrxlState_SendHandshake;
+                        pBus->master = true;
+                        pBus->pMasterRcvr = srxlThisDev.pRcvr;
+                    }
+                }
+#endif
+            }
         }
 
         // Add this device to our list of discovered devices
         SrxlDevEntry newDev = {.deviceID = pHandshake->srcDevID, .priority = pHandshake->priority, .info = pHandshake->info};
         SrxlDevEntry* pDev = srxlAddDeviceEntry(pBus, newDev);
+
+#ifdef SRXL_INCLUDE_MASTER_CODE
+        // Stand down if we just got outranked by a new master
+        if(pBus->master && pHandshake->srcDevID >= 0x10 && pHandshake->srcDevID < pBus->fullID.deviceID)
+        {
+            pBus->master = false;
+            pBus->state = SrxlState_ListenForHandshake;
+        }
 
         // Bus master needs to track responses and poll next device
         if(pBus->master)
@@ -850,8 +920,10 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
             // Make sure the state machine is set to poll -- this will eventually reach broadcast address (0xFF)
             pBus->state = SrxlState_SendHandshake;
         }
+        else
+#endif
         // Broadcast handshake sets the agreed upon baud rate for this bus
-        else if(pHandshake->destDevID == 0xFF)
+        if(pHandshake->destDevID == 0xFF)
         {
             // Get bus master receiver entry (if it's a flight controller, add it now as a receiver on this bus)
             if(newDev.deviceID >= 0x30 && newDev.deviceID < 0x40)
@@ -874,6 +946,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
         // Normal Handshake destined for this device should be replied to -- else ignore
         else
         {
+            // Only send a reply if we didn't just send the unprompted handshake to the master that requested this handshake
             if(pHandshake->destDevID == pBus->fullID.deviceID && pBus->state != SrxlState_SendHandshake)
             {
                 pBus->requestID = pHandshake->srcDevID;
@@ -948,7 +1021,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
             }
             else if(pBindInfo->request == SRXL_BIND_REQ_STATUS && srxlThisDev.pRcvr)
             {
-                // TODO: Fill in data if we didn't just bind?
+                // Bind info is filled on startup or bind, so just flag to send
                 pBus->txFlags.reportBindInfo = 1;
             }
             // Handle set bind info request
@@ -956,8 +1029,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
             {
                 srxlBindInfo = pBindInfo->data;
 #ifdef SRXL_INCLUDE_MASTER_CODE
-                if(pBus->fullID.deviceID < 0x30)
-                    srxlTryToBind(srxlBindInfo);
+                srxlTryToBind(srxlBindInfo);
 #endif
             }
         }
@@ -991,7 +1063,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
                 srxlRx.pTelemRcvr = srxlChooseTelemRcvr();
             }
 #else
-            srxlRx.pTelemRcvr = srxlThisDev.pRcvr;
+            srxlRx.pTelemRcvr = pBus->pMasterRcvr;
 #endif
             // Enable this device's telemetry tx based on whether we are the chosen telemetry receiver
 #ifdef SRXL_INCLUDE_MASTER_CODE
@@ -999,7 +1071,7 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
 #endif
         }
         // Else turn off our telemetry and that of any receivers we might reply to via our own telemetry
-        else
+        else if(pBus->master)
         {
             srxlRx.pTelemRcvr = 0;
 #ifdef SRXL_INCLUDE_MASTER_CODE
@@ -1013,6 +1085,20 @@ bool srxlParsePacket(uint8_t busIndex, uint8_t* packet, uint8_t length)
 #endif
         break;
     }
+#ifdef SRXL_ENABLE_INTERNAL
+    case SRXL_SPM_INTERNAL:
+    {
+        if(length < sizeof(SrxlInternalPacket) + 2)
+            return false;
+        SrxlInternalPacket* pInternal = &(pRx->internal);
+        if((pInternal->payload.destDevID != 0xFF) && (pInternal->payload.destDevID != pBus->fullID.deviceID))
+            return false;
+        if(!srxlParseInternal(pInternal))
+            return false;
+
+        break;
+    }
+#endif //SRXL_ENABLE_INTERNAL
     default:
     {
         break;
@@ -1102,7 +1188,7 @@ void srxlRun(uint8_t busIndex, int16_t timeoutDelta_ms)
         }
         case SrxlState_SendEnterBind:
         {
-            if(srxlRx.pBindRcvr && (srxlRx.pBindRcvr != srxlThisDev.pRcvr))
+            if(srxlRx.pBindRcvr && (srxlRx.pBindRcvr == pBus->pMasterRcvr))
             {
                 srxlSend(pBus, SRXL_CMD_ENTER_BIND, srxlRx.pBindRcvr->deviceID);
             }
@@ -1120,12 +1206,26 @@ void srxlRun(uint8_t busIndex, int16_t timeoutDelta_ms)
             pBus->state = SrxlState_Running;
             break;
         }
+        case SrxlState_RequestBindInfo:
+        {
+            srxlSend(pBus, SRXL_CMD_REQ_BIND_INFO, pBus->requestID);
+            pBus->state = SrxlState_Running;
+            break;
+        }
         case SrxlState_SendBoundDataReport:
         {
             srxlSend(pBus, SRXL_CMD_BIND_INFO, pBus->fullID.deviceID);
             pBus->state = SrxlState_Running;
             break;
         }
+#ifdef SRXL_ENABLE_INTERNAL
+        case SrxlState_SendInternal:
+        {
+            srxlSend(pBus, SRXL_CMD_INTERNAL, pBus->requestID);
+            pBus->state = SrxlState_Running;
+            break;
+        }
+#endif //SRXL_ENABLE_INTERNAL
         case SrxlState_Running:
         default:
         {
@@ -1164,11 +1264,11 @@ bool srxlEnterBind(uint8_t bindType, bool broadcast)
         srxlRx.pBindRcvr = srxlRx.rcvrSorted[0];
     }
 
-    if(srxlRx.pBindRcvr)
+    if(srxlRx.pBindRcvr || broadcast)
     {
 #ifdef SRXL_INCLUDE_MASTER_CODE
         // Local bind
-        if(srxlRx.pBindRcvr == srxlThisDev.pRcvr)
+        if(srxlRx.pBindRcvr && (srxlRx.pBindRcvr == srxlThisDev.pRcvr))
         {
             srxlBindInfo.type = bindType;
             srxlBindInfo.options = SRXL_BIND_OPT_BIND_TX_ENABLE;
@@ -1177,26 +1277,20 @@ bool srxlEnterBind(uint8_t bindType, bool broadcast)
             if(srxlRx.pBindRcvr == srxlRx.pTelemRcvr)
                 srxlBindInfo.options |= SRXL_BIND_OPT_TELEM_TX_ENABLE;
             srxlTryToBind(srxlBindInfo);
-            if(broadcast)
-            {
-                for(uint8_t b = 0; b < SRXL_NUM_OF_BUSES; ++b)
-                {
-                    srxlBus[b].txFlags.enterBind = 1;
-                }
-            }
-            return true;
         }
 #endif // SRXL_INCLUDE_MASTER_CODE
 
         // Remote bind
         for(uint8_t i = 0; i < SRXL_NUM_OF_BUSES; ++i)
         {
-            if((1u << i) & srxlRx.pBindRcvr->busBits)
+            if(broadcast || ((1u << i) & srxlRx.pBindRcvr->busBits))
             {
                 srxlBus[i].txFlags.enterBind = 1;
-                return true;
+                if(!broadcast)
+                    return true;
             }
         }
+        return true;
     }
 
     return false;
@@ -1236,6 +1330,24 @@ bool srxlSetBindInfo(uint8_t bindType, uint64_t guid, uint32_t uid)
         srxlBus[b].txFlags.broadcastBindInfo = 1;
     }
 
+    return true;
+}
+
+/**
+    @brief  Public function to request a bound data report from a device on the SRXL bus
+
+    @param  busIndex: Index of SRXL bus state information entry in the srxlBus array
+    @param  destDevID: Device ID of bus device to request a bound data report from
+    @return bool: True if bind status request can be sent to the destination device; else false
+*/
+bool srxlRequestBindInfo(uint8_t busIndex, uint8_t destDevID)
+{
+    SrxlBus* pBus = &srxlBus[busIndex];
+    if(busIndex >= SRXL_NUM_OF_BUSES || !pBus->initialized || !destDevID || destDevID >= 0x40 || pBus->state < SrxlState_Running )
+        return false;
+
+    pBus->requestID = destDevID;
+    pBus->txFlags.getBindInfo = 1;
     return true;
 }
 
@@ -1363,7 +1475,7 @@ bool srxlUpdateCommStats(bool isFade)
 
             if((srxlRx.rcvr[i].rssiRcvd & RSSI_RCVD_DBM) && srxlRx.bestRssi_dBm < srxlRx.rcvr[i].rssi_dBm)
                 srxlRx.bestRssi_dBm = srxlRx.rcvr[i].rssi_dBm;
-            if((srxlRx.rcvr[i].rssiRcvd & RSSI_RCVD_PCT) && srxlRx.bestRssi_dBm < srxlRx.rcvr[i].rssi_Pct)
+            if((srxlRx.rcvr[i].rssiRcvd & RSSI_RCVD_PCT) && srxlRx.bestRssi_Pct < srxlRx.rcvr[i].rssi_Pct)
                 srxlRx.bestRssi_Pct = srxlRx.rcvr[i].rssi_Pct;
         }
     }
@@ -1411,7 +1523,10 @@ bool srxlUpdateCommStats(bool isFade)
     else if(++srxlTelemSuppressCount > SRXL_TELEM_SUPPRESS_MAX)
     {
         // Enable this device's telemetry tx since we stopped being told not to
-        srxlRx.pTelemRcvr = srxlThisDev.pRcvr;
+        if(srxlThisDev.pRcvr)
+            srxlRx.pTelemRcvr = srxlThisDev.pRcvr;
+        else
+            srxlRx.pTelemRcvr = srxlChooseTelemRcvr();
         srxlSetTelemetryTxEnable(srxlRx.pTelemRcvr);
     }
 #endif
@@ -1419,3 +1534,25 @@ bool srxlUpdateCommStats(bool isFade)
     // Return true while we're in hold condition (failsafe)
     return srxlRx.lossCountdown == 0;
 }
+
+// For internal Spektrum use only
+#ifdef SRXL_ENABLE_INTERNAL
+void srxlSendInternalData(uint8_t busIndex, uint8_t destDevID, uint8_t cmd)
+{
+    SrxlBus* pBus = &srxlBus[busIndex];
+    if(busIndex >= SRXL_NUM_OF_BUSES || !pBus->initialized)
+        return;
+
+    srxlInternalTest = cmd;
+    pBus->requestID = destDevID;
+    if(pBus->master || (pBus->state < SrxlState_Running))
+    {
+        srxlSend(pBus, SRXL_CMD_INTERNAL, pBus->requestID);
+    }
+    else
+    {
+        pBus->txFlags.sendInternal = 1;
+    }
+}
+#endif //SRXL_ENABLE_INTERNAL
+
