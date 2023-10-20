@@ -1,10 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // SRXL2 decoder example for Base Receivers and ATMega328P. Used receiver in this exampel is the AR6610T.
-// Channels are locked to these pins:
-// Ch0=Pin2, Ch1=Pin3, Ch2=Pin4, Ch3=Pin5, Ch4=Pin6, Ch5=Pin7, Ch6=Pin8, Ch7=Pin9, Ch8=Pin10, Ch9=Pin11
-// Ch10=Pin12, Ch11=Pin13, (Ch12=PinA0, Ch13=PinA1, Ch14=PinA2, Ch15=PinA3, Ch16=PinA4, Ch17=PinA5)
-//
 // 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,7 +64,9 @@ boolean timersRunning = false;
 
 // Array to store the input PWM servo position
 uint16_t pwmPos[NO_OF_INPUT_CHANNELS];
-uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, ELEV, GEAR, AUX1, AUX2, AUX3, AUX4,  AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
+
+// Chanel mapping to outputs                      D2    D3    D4    D5    D6    D7    D8    D9    D10   D11  D12 D13  A0  A1  A2  A3  A4  A5
+uint16_t inputChannelMap[NO_OF_INPUT_CHANNELS] = {THRO, ELEV, GEAR, AUX1, AUX2, AUX3, AUX4, AUX5, AUX6, AUX7, X1, X2, X3, X4, X5, X6, X7, X8};
 
 static byte Jitter;
 static byte Jitter2;
