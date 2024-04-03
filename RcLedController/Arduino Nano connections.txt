@@ -1,0 +1,25 @@
+Arduino input pins and function:
++5V Power
+GND
+A0,  Data signal input. 
+
+Data input Can bee used with either:
+Alt 1: PWM (Servo type signal from any Rx output).
+or  2: Serial RX input (Spektrum Serial RX signal from a DSMx remote reciever).
+Depending if code is compiled with USE_PWM_INPUT or USE_SERIAL_RX_INPUT defined.
+
+
+Arduino output pins and LED functions:
+Pin  Function       Usage  
+  2, ACL_STROBE,    Heli anti collition white tripple strobe
+  3, ACL_STROBE,    Heli anti collition white tripple strobe
+  4, POS_LIGHT,     Red
+  5, ACL_STROBE,    Heli anti collition white tripple strobe
+  6, POS_LIGHT,     Green
+  7, ACL_STROBE,    Heli anti collition white tripple strobe
+  8, POS_LIGHT,     White
+  9, BEACON,        Red slow fading beacon. allways on when powered
+ 10, BEACON,        Red belly fading beacon, slightly faster.
+ 11, LANDING_LIGHT, White landing lights
+ 12, LANDING_LIGHT, White landing lights
+ 13, BACKUP_LIGHT,  White backup/reverse lights
