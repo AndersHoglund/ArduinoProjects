@@ -1,15 +1,20 @@
 Arduino input pins and function:
-+5V Power
-GND
-A0,  Data signal input. 
 
 Data input Can bee used with either:
 Alt 1: PWM (Servo type signal from any Rx output).
 or  2: Serial RX input (Spektrum Serial RX signal from a DSMx remote reciever).
 Depending if code is compiled with USE_PWM_INPUT or USE_SERIAL_RX_INPUT defined.
 
+Input connections via for example a std servo cable:
+A0,  Data signal input. PWM or Serial.
++5V Power from main Rx or BEC
+GND
+
+If a remote serial Rx is used, it may need 3.3v depending on type. Either from the Arduino, or its own regulator built into the cable. 
+
 
 Arduino output pins and LED functions:
+
 Pin  Function       Usage  
   2, ACL_STROBE,    Heli anti collition white tripple strobe
   3, ACL_STROBE,    Heli anti collition white tripple strobe
@@ -23,3 +28,8 @@ Pin  Function       Usage
  11, LANDING_LIGHT, White landing lights
  12, LANDING_LIGHT, White landing lights
  13, BACKUP_LIGHT,  White backup/reverse lights
+
+One practical way of connecting the LEDs are to take a 90 degree angled 2x12 pin header, Solder a GND wire across all top pins and cut off the 90 degree angle, thus creating a gnd rail on the upper pins. Remaining lower pin 90 degreee angles are soldered onto the Arduino Nano output holes D2 - D12, pin 13 will end up in the mounting hole in the corner. D13 output are on the opposite side and needs a short wire over to pin 13 in the header. Connect the ground rail wire to the GND hole close to D2 on the Arduino Nano. 
+
+A box for the LED controller can be 3D-printed using STL files in "RC LED Controller Box.zip".
+
