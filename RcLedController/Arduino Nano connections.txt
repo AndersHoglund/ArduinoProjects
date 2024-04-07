@@ -15,25 +15,25 @@ If a remote serial Rx is used, it may need 3.3v depending on type. Either from t
 
 Arduino output pins and LED functions:
 
-Pin  Function       Usage  
-  2, ACL_STROBE,    Heli anti collition white tripple strobe
-  3, ACL_STROBE,    Heli anti collition white tripple strobe
-  4, POS_LIGHT,     Red
-  5, ACL_STROBE,    Heli anti collition white tripple strobe
-  6, POS_LIGHT,     Green
-  7, ACL_STROBE,    Heli anti collition white tripple strobe
-  8, POS_LIGHT,     White
-  9, BEACON,        Red slow fading beacon. allways on when powered
- 10, BEACON,        Red belly fading beacon, slightly faster.
- 11, LANDING_LIGHT, White landing lights
- 12, LANDING_LIGHT, White landing lights
- 13, BACKUP_LIGHT,  White backup/reverse lights
+Pin Output  Function       Usage  
+  1     D2, ACL_STROBE,    Heli anti collition white tripple strobe
+  2     D3, ACL_STROBE,    Heli anti collition white tripple strobe
+  3     D4, POS_LIGHT,     Red
+  4     D5, ACL_STROBE,    Heli anti collition white tripple strobe
+  5     D6, POS_LIGHT,     Green
+  6     D7, ACL_STROBE,    Heli anti collition white tripple strobe
+  7     D8, POS_LIGHT,     White
+  8     D9, BEACON,        Red slow fading beacon. allways on when powered
+  9    D10, BEACON,        Red belly fading beacon, slightly faster.
+ 10    D11, LANDING_LIGHT, White landing lights
+ 11    D12, LANDING_LIGHT, White landing lights
+ 12    D13, BACKUP_LIGHT,  White backup/reverse lights
 
 One practical way of connecting the LEDs are to take a 90 degree angled 2x12 pin header. Solder a wire 
 across all top pins and cut off the 90 degree angle, thus creating a gnd rail on the upper pins. 
 Remaining lower 90 degreee angled pins are soldered onto the Arduino Nano output holes D2 - D12. 
-Pin 13 will end up in the mounting hole in the corner. D13 output are on the opposite side and needs 
-a short wire over to pin 13 in the header. 
+Pin 12 will end up in the mounting hole in the corner. D13 output are on the opposite side and needs 
+a short wire over to pin 12 in the header. 
 Connect the ground rail wire to the GND hole close to D2 on the Arduino Nano.
 
 LEDs will need serial resistors built into their cableing, 100 ohms or so for std bright LEDS. Be sure to stay at 15-20mA each. Arduino outputs can take 40mA, but give it some headroom if you use many LEDs. If you need more juice, you will need to built external power buffers.
