@@ -15,19 +15,32 @@ If a remote serial Rx is used, it may need 3.3v depending on type. Either from t
 
 Arduino output pins and LED functions:
 
-Pin Output  Function       Usage  
-  1     D2, ACL_STROBE,    Heli anti collition white tripple strobe
-  2     D3, ACL_STROBE,    Heli anti collition white tripple strobe
-  3     D4, POS_LIGHT,     Red
-  4     D5, ACL_STROBE,    Heli anti collition white tripple strobe
-  5     D6, POS_LIGHT,     Green
-  6     D7, ACL_STROBE,    Heli anti collition white tripple strobe
-  7     D8, POS_LIGHT,     White
-  8     D9, BEACON,        Red slow fading beacon. allways on when powered
-  9    D10, BEACON,        Red belly fading beacon, slightly faster.
- 10    D11, LANDING_LIGHT, White landing lights
- 11    D12, LANDING_LIGHT, White landing lights
- 12    D13, BACKUP_LIGHT,  White backup/reverse lights
+Pin Output  Function       PWM limit(uS)  Usage  
+  1     D2, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  2     D3, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  3     D4, POS_LIGHT,     1300           Red
+  4     D5, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  5     D6, POS_LIGHT,     1300           Green
+  6     D7, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  7     D8, POS_LIGHT,     1300           White
+  8     D9, BEACON,        -              Red slow fading beacon. allways on when powered
+  9    D10, BEACON,        1200           Red belly fading beacon, slightly faster.
+ 10    D11, LANDING_LIGHT, 1500           White landing lights
+ 11    D12, LANDING_LIGHT, 1500           White landing lights
+ 12    D13, BACKUP_LIGHT,  1700           White backup/reverse lights
+
+The PWM timing intervals in sequnce:
+1000 - 1199 all off except beacon on D9, power on indicator.
+1200 - 1299 Beacon on D10, plus above.
+1300 - 1399 Position lights, plus all above.
+1400 - 1499 ACL strobes, plus all above.
+1500 - 1699 Landing lights, plus all above.
+1700 - 2000 Backup/reverse lights, plus all above.
+
+Set PWM pulse width for each position the Tx switch you want to use, to select what lights comes on or off.
+With a 6 position switch, like the S1 - S6 push buttons on TX16s, you have full control of each step.
+With only a two or three position switch, you have to choose what ligths come on and off in each position.
+
 
 One practical way of connecting the LEDs are to take a 90 degree angled 2x12 pin header. Solder a wire 
 across all top pins and cut off the 90 degree angle, thus creating a gnd rail on the upper pins. 
@@ -39,4 +52,6 @@ Connect the ground rail wire to the GND hole close to D2 on the Arduino Nano.
 LEDs will need serial resistors built into their cableing, 100 ohms or so for std bright LEDS. Be sure to stay at 15-20mA each. Arduino outputs can take 40mA, but give it some headroom if you use many LEDs. If you need more juice, you will need to built external power buffers.
 
 A box for the LED controller can be 3D-printed using STL files in "RC LED Controller Box.zip".
+
+
 
