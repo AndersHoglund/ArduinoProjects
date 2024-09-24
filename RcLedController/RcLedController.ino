@@ -1,44 +1,27 @@
 /*
-   Asyncronuos multi blinks and fades
+   Arduino 12 channel RC LED Controller
+
+   Nav lights, ACL strobes, beacons and landing and reverse lights.
 */
-//#define USE_SERIAL_RX_INPUT
-#define USE_PWM_INPUT
+
+#include "RcLedController_conf.h"
+
+#if !defined USE_SRXL2_INPUT && !defined USE_SERIAL_RX_INPUT && !defined USE_PWM_INPUT
+#error No RC controller input type selected.
+#endif
+
+#if defined USE_SRXL2_INPUT && (defined USE_SERIAL_RX_INPUT || defined USE_PWM_INPUT) ||\
+    defined USE_SERIAL_RX_INPUT && (defined USE_SRXL2_INPUT || defined USE_PWM_INPUT) ||\
+    defined USE_PWM_INPUT && (defined USE_SERIAL_RX_INPUT || defined USE_SRXL2_INPUT)
+#error Only one RC controller input type can be selected.
+#endif
+
+#ifdef USE_SRXL2_INPUT
+#include "srxl2Input.hpp"
+#endif
 
 #ifdef USE_SERIAL_RX_INPUT
-#include <SoftwareSerial.h>
-
-// Spektrum channel order
-#define THRO 0
-#define AILE 1
-#define ELEV 2
-#define ROLL 3
-#define GEAR 4
-#define AUX1 5
-#define AUX2 6
-#define AUX3 7
-#define AUX4 8
-#define AUX5 9
-
-// Only available at 22ms frame rate, not at 11ms.
-#define AUX6 10
-#define AUX7 11
-
-// Select what channel to use
-#define LED_CONTROL_CHANNEL AUX7
-
-// Select Arduino input pin
-#define INPUT_PIN A0
-#define OUTPUT_PIN A1
-
-// Only support DSMx SERIALRX_SPEKTRUM2048:
-#define SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT 12
-#define SPEK_FRAME_SIZE                      16
-#define SPEK_CHAN_SHIFT                       3
-#define SPEK_CHAN_MASK                     0x07
-#define SPEKTRUM_NEEDED_FRAME_INTERVAL        5
-#define SPEKTRUM_BAUDRATE                115200
-
-SoftwareSerial serialRx(INPUT_PIN, OUTPUT_PIN); // RX, TX
+#include "serialRxInput.hpp"
 #endif
 
 #ifdef USE_PWM_INPUT
@@ -66,15 +49,15 @@ SoftwareSerial serialRx(INPUT_PIN, OUTPUT_PIN); // RX, TX
 
 typedef struct
 {
-  int pin;
-  int steps;                // Number of blinks, strobes or fade-steps per period
+  uint8_t  pin;
+  uint8_t  steps;                // Number of blinks, strobes or fade-steps per period
   unsigned long period;     // Overall total period time for blinkers, fade step cycle time for faders.
   unsigned long duration;   // On and off time for multi blinkers, off time for faders.
   unsigned long prevTime;
-  int state;
-  double pwm;
-  unsigned int ledValue;
-  unsigned int type;
+  uint8_t  state;
+  uint16_t pwm;
+  uint16_t ledValue;
+  uint8_t type;
 } blinker_t;
 
 blinker_t blinkers[] =
@@ -98,27 +81,32 @@ blinker_t blinkers[] =
 
 // Ugly globals....
 unsigned long currentTime;
-double pwmInput;
+uint16_t pwmInput;
 
 /**************************************************************/
 void setup()
 {
+#ifdef USE_SRXL2_INPUT
+  setupSRXL2();
+#endif
+
+#ifdef USE_SERIAL_RX_INPUT
+  setupSerialRx();
+#endif
+
+#if defined USE_PWM_INPUT
+  pinMode(INPUT_PIN, INPUT);
+#endif
+
   for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++)
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
 
-  pinMode(INPUT_PIN, INPUT);
-
-#ifdef DEBUG
+#if (defined DEBUG && (defined USE_PWM_INPUT || defined USE_SOFTWARE_SERIAL))
   Serial.begin(9600);
   Serial.println("Goodnight moon!");
 #endif
-
-#ifdef USE_SERIAL_RX_INPUT
-  serialRx.begin(SPEKTRUM_BAUDRATE);
-#endif
-
 }
 
 /**************************************************************/
@@ -127,54 +115,12 @@ void loop()
 
   currentTime = millis();
 
+#ifdef USE_SRXL2_INPUT
+  getSRXL2Pwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
+#endif
+
 #ifdef USE_SERIAL_RX_INPUT
-  static unsigned long lastSerialRxTime = 0;
-  static unsigned char spekFrame[SPEK_FRAME_SIZE];
-  static unsigned char spekFramePosition = 0;
-  static bool rcFrameComplete = false;
-
-  unsigned long spekChannelData[SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT];
-
-  if (currentTime - lastSerialRxTime > SPEKTRUM_NEEDED_FRAME_INTERVAL)
-  {
-    spekFramePosition = 0;
-  }
-
-  if (spekFramePosition < SPEK_FRAME_SIZE && serialRx.available())
-  {
-    lastSerialRxTime = currentTime;
-
-    unsigned char c = serialRx.read();
-    spekFrame[spekFramePosition++] = c;
-    
-    if (spekFramePosition < SPEK_FRAME_SIZE)
-    {
-      rcFrameComplete = false;
-    }
-    else
-    {
-      rcFrameComplete = true;
-    }
-  }
-
-  if (rcFrameComplete)
-  {
-    rcFrameComplete = false;
-
-    // Get the RC control channel inputs
-    for (int b = 3; b < SPEK_FRAME_SIZE; b += 2)
-    {
-      const uint8_t spekChannel = 0x0F & (spekFrame[b - 1] >> SPEK_CHAN_SHIFT);
-
-      if (spekChannel < SPEKTRUM_MAX_SUPPORTED_CHANNEL_COUNT)
-      {
-        spekChannelData[spekChannel] = ((spekFrame[b - 1] & SPEK_CHAN_MASK) << 8) + spekFrame[b];
-      }
-    }
-
-    // Convert to PWM 1000 .. 1500 .. 2000 value range
-    pwmInput = 988 + (spekChannelData[LED_CONTROL_CHANNEL] >> 1);   // 2048 mode
-  }
+  getSerialRxPwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
 #endif
 
 #ifdef USE_PWM_INPUT

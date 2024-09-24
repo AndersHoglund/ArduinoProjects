@@ -3,14 +3,17 @@ Arduino input pins and function:
 Data input Can bee used with either:
 Alt 1: PWM (Servo type signal from any Rx output).
 or  2: Serial RX input (Spektrum Serial RX signal from a DSMx remote reciever).
-Depending if code is compiled with USE_PWM_INPUT or USE_SERIAL_RX_INPUT defined.
+or  3: SRXL2 input from a master Rx
+Depending if code is compiled with USE_PWM_INPUT, USE_SERIAL_RX_INPUT or USE_SRXL2_INPUT defined.
 
 Input connections via for example a std servo cable:
-A0,  Data signal input. PWM or Serial.
+A0,  Data signal input. PWM or SerialRx.
 +5V Power from main Rx or BEC
 GND
 
 If a remote serial Rx is used, it may need 3.3v depending on type. Either from the Arduino, or its own regulator built into the cable. 
+
+SRXL2 is connected to the Nano RX0 and via a zener diode to TX1, +5V and GND. Use the Bind/Prog/SRXL2 port on the Rx
 
 
 Arduino output pins and LED functions:
