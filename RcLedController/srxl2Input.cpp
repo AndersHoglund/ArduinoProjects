@@ -13,7 +13,7 @@
 
 #include "RcLedController_conf.h"
 
-#ifdef USE_SRXL2_INPUT
+#if defined USE_SRXL2_INPUT || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
 #include "srxl2Input.hpp"
 
 #ifdef USE_SOFTWARE_SERIAL
@@ -25,9 +25,12 @@ const long pwmInterval = 22;
 
 static uint8_t rcCh;
 static uint16_t * pwmPtr;
+static unsigned long prevSrxl2PacketTime = 0; // Last OK parsed SRXL2 packet
 
 void setupSRXL2()
 {
+  prevSrxl2PacketTime = millis();
+
   srxl2port.begin(SRXL2_PORT_BAUDRATE_DEFAULT);
   srxlInitDevice(SRXL_DEVICE_ID, SRXL_DEVICE_PRIORITY, SRXL_DEVICE_INFO, 0x01000001);
   srxlInitBus(0, 1, SRXL_SUPPORTED_BAUD_RATES);
@@ -35,7 +38,7 @@ void setupSRXL2()
 
 void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmValuePtr)
 {
-  static unsigned long prevSerialRxTime = 0;
+  static unsigned long prevSerialRxTime = 0;    // Last recieved serial data
 
   // UART receive buffer
   static uint8_t rxBuffer[2 * SRXL_MAX_BUFFER_SIZE];
@@ -43,6 +46,12 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
 
   rcCh = rcChannel;
   pwmPtr = pwmValuePtr;
+
+  if ((currentTime - prevSrxl2PacketTime) > (SRXL2_FRAME_TIMEOUT*50))
+  {
+    *pwmValuePtr = 0; // Signal time out no SRXL2 data recieved after 50 frame times.
+    return;
+  }
 
   if (currentTime - prevSerialRxTime > SRXL2_FRAME_TIMEOUT)
   {
@@ -68,6 +77,7 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
         // Try to parse SRXL packet -- this internally calls srxlRun() after packet is parsed and reset timeout
         if (srxlParsePacket(0, rxBuffer, packetLength))
         {
+          prevSrxl2PacketTime = currentTime;
           // Move any remaining bytes to beginning of buffer (usually 0)
           rxBufferIndex -= packetLength;
           memmove(rxBuffer, &rxBuffer[packetLength], rxBufferIndex);

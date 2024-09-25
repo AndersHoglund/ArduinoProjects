@@ -1,7 +1,11 @@
-// Select input interface type
-#define USE_SRXL2_INPUT
+// ***** Select input interface type *****
+// Old school single input type only
+//#define USE_SRXL2_INPUT
 //#define USE_SERIAL_RX_INPUT
 //#define USE_PWM_INPUT
+
+// Auto detect and select type, only PWM and SRXL2 supported. Not SerialRx. yet.
+#define USE_AUTO_SRXL2_PWM_INPUT_SELECTION
 
 // Spektrum channel order
 #define THRO 0
