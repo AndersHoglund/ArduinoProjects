@@ -2,45 +2,17 @@
    Arduino 12 channel RC LED Controller
 
    Nav lights, ACL strobes, beacons and landing and reverse lights.
+   Using SRXL2 or PWM input, automatically detedted.
+   If you need SerialRx from a satellite Rx, or fixed single PWM input, checkout older versions from Git.
 */
 
 #include "RcLedController_conf.h"
 
-#if !defined USE_SRXL2_INPUT && !defined USE_SERIAL_RX_INPUT && !defined USE_PWM_INPUT && !defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
-#error No RC controller input type selected.
-#endif
-
-#if defined USE_SRXL2_INPUT && (defined USE_SERIAL_RX_INPUT || defined USE_PWM_INPUT) ||\
-    defined USE_SERIAL_RX_INPUT && (defined USE_SRXL2_INPUT || defined USE_PWM_INPUT) ||\
-    defined USE_PWM_INPUT && (defined USE_SERIAL_RX_INPUT || defined USE_SRXL2_INPUT)
-#error Only one RC controller input type can be selected.
-#endif
-
-#ifdef USE_AUTO_SRXL2_PWM_INPUT_SELECTION
-#if defined USE_SRXL2_INPUT || defined USE_SERIAL_RX_INPUT || defined USE_PWM_INPUT
-#error Old school input definintions must not be used together with auto detection.
-#endif
 #include "srxl2Input.hpp"
 
 #define INPUT_PIN 0           // RX0 pin, new wiring shared PWM/SRXL2 input pin
 #define PWM_INPUT_MIN 800
 #define PWM_INPUT_MAX 2200
-
-#endif
-
-#ifdef USE_SRXL2_INPUT
-#include "srxl2Input.hpp"
-#endif
-
-#ifdef USE_SERIAL_RX_INPUT
-#include "serialRxInput.hpp"
-#endif
-
-#ifdef USE_PWM_INPUT
-#define INPUT_PIN A0       // Anlog 0 inout,old type of wiring
-#define PWM_INPUT_MIN 800
-#define PWM_INPUT_MAX 2200
-#endif
 
 // Classification.
 #define NOT_USED         0
@@ -98,73 +70,44 @@ uint16_t pwmInput = 1000;  // All lights off by default at power up
 /**************************************************************/
 void setup()
 {
-#if defined USE_SRXL2_INPUT || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
   setupSRXL2();
-#endif
 
-#if defined USE_SERIAL_RX_INPUT // || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
-  setupSerialRx();
-#endif
-
-#if defined USE_PWM_INPUT || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
   pinMode(INPUT_PIN, INPUT);
-#endif
-
   for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++)
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
-
-#if (defined DEBUG && (defined USE_PWM_INPUT || defined USE_SOFTWARE_SERIAL))
-  Serial.begin(9600);
-  Serial.println("Goodnight moon!");
-#endif
 }
 
 /**************************************************************/
 void loop()
 {
-
-  currentTime = millis();
-
-#ifdef USE_AUTO_SRXL2_PWM_INPUT_SELECTION
   static boolean usePwm = false;
 
+/*********** SRXL2 input **************/
+  currentTime = millis();
   if (!usePwm)
   {
     getSRXL2Pwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
+    // If SRXL2 parsing fails, switxh to PWM input
     if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) usePwm = true;
   }
-#endif
 
-#ifdef USE_SRXL2_INPUT
-  getSRXL2Pwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
-  if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;
-#endif
-
-#ifdef USE_SERIAL_RX_INPUT
-  getSerialRxPwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
-  if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000; 
-#endif
-
-#if defined USE_PWM_INPUT || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
-#ifdef USE_AUTO_SRXL2_PWM_INPUT_SELECTION
+/************* PWM Input driver *****************/
   if (usePwm)
   {
-#endif
-  static unsigned long prevPwmTime = 0;
-  const long pwmInterval = 1000;
+    static unsigned long prevPwmTime = 0;
+    const long pwmInterval = 1000;
 
-  if (currentTime - prevPwmTime >= pwmInterval)
-  {
-    prevPwmTime = currentTime;
-    pwmInput = pulseInLong(INPUT_PIN, HIGH, 30000);
-    if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;
+    if (currentTime - prevPwmTime >= pwmInterval)
+    {
+      prevPwmTime = currentTime;
+      pwmInput = pulseInLong(INPUT_PIN, HIGH, 30000);
+      if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;
+    }
   }
-#ifdef USE_AUTO_SRXL2_PWM_INPUT_SELECTION
-  }
-#endif
-#endif
+
+/************** LED output driver ***************/
 
   for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++ )
   {

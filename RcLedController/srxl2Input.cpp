@@ -12,8 +12,6 @@
 #include <arduino.h>
 
 #include "RcLedController_conf.h"
-
-#if defined USE_SRXL2_INPUT || defined USE_AUTO_SRXL2_PWM_INPUT_SELECTION
 #include "srxl2Input.hpp"
 
 #ifdef USE_SOFTWARE_SERIAL
@@ -94,23 +92,21 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
 
 ///////////////////////// SRXL2 channel interface //////////////////////////////
 
-  void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
-  { 
-    // Get channel values and return ity on the supplied pointer.
-    *pwmPtr = 988 + (srxlChData.values[rcCh] >> 6);    // 16-bit to 10-bit range (0 - 1024)
-  }
+void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe)
+{ 
+  // Get channel values and return ity on the supplied pointer.
+  *pwmPtr = 988 + (srxlChData.values[rcCh] >> 6);    // 16-bit to 10-bit range (0 - 1024)
+}
 
-  void uartSetBaud(uint8_t uart, uint32_t baudRate) // Automatic adjust SRXL2 baudrate.
+void uartSetBaud(uint8_t uart, uint32_t baudRate) // Automatic adjust SRXL2 baudrate.
+{
+  // Not supported yet
+}
+
+void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length)
+{
+  for (uint8_t i=0; i < length; i++)
   {
-    // Not supported yet
+    srxl2port.write(pBuffer[i]);
   }
-
-  void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length)
-  {
-    for (uint8_t i=0; i < length; i++)
-    {
-      srxl2port.write(pBuffer[i]);
-    }
-  }
-
-#endif
+}
