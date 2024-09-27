@@ -1,3 +1,4 @@
+/*********** SRXL2 input driver **************/
 
 /* Hardware UART must be used with an added schottky diode (BAT85 works) to create a single wire halfduplex interface.
   *

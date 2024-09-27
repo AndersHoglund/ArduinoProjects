@@ -1,5 +1,3 @@
-// Auto detect and select type, only PWM and SRXL2 supported. Not SerialRx. yet.
-#define USE_AUTO_SRXL2_PWM_INPUT_SELECTION
 
 // Spektrum channel order
 #define THRO 0
