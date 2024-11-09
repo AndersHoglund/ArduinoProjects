@@ -1,4 +1,5 @@
-Arduino input pins and function:
+Arduino Nano and STM32F103 BluePill input and output pins and function:
+
 
 Data input:
 Alt 1: PWM (Servo type signal from any Rx output).
@@ -7,30 +8,40 @@ If you need serialaRx from a remote satellite Rx, you must checkout some older v
 
 Input type is auto detected, if SRXL2 fails we fallback to PWM.
 
-Input connections via for example a std servo cable:
-        Rx0  Data signal input for PWM and SRXL2.
-        Tx1  Zener diode connected to Rx0.
-        +5V  Power from main Rx or BEC
-        GND
+Input connections, for Arduino Nano or STM32F103 BluePill (BP), via for example a std servo cable:
+        Namo BP
+        Rx0  PA10 UART Rx. Data signal input for PWM and SRXL2.
+        Tx1  PA9  UART Tx. Zener diode connected to Rx0/PA10.
+        +5V  +5V  Power from main Rx or BEC
+        GND  GND
+
+     LED Controller                  RC Receiver
+     UART Rx  ------------o
+                          |
+     UART Tx  ---|<|------o--------- PWM/SRXL2_DATA
+     +5V      ---------------------- +5V
+     GND      ---------------------- GND
+
 
 For SRXL2, Use the Bind/Prog/SRXL2 port on the Rx
 
 
-Arduino output pins and LED functions:
+Otput pins and LED functions.
 
-Pin Output  Function       PWM limit(uS)  Usage  
-  1     D2, ACL_STROBE,    1400           Heli anti collition white tripple strobe
-  2     D3, ACL_STROBE,    1400           Heli anti collition white tripple strobe
-  3     D4, POS_LIGHT,     1300           Red
-  4     D5, ACL_STROBE,    1400           Heli anti collition white tripple strobe
-  5     D6, POS_LIGHT,     1300           Green
-  6     D7, ACL_STROBE,    1400           Heli anti collition white tripple strobe
-  7     D8, POS_LIGHT,     1300           White
-  8     D9, BEACON,        -              Red slow fading beacon. allways on when powered
-  9    D10, BEACON,        1200           Red belly fading beacon, slightly faster.
- 10    D11, LANDING_LIGHT, 1500           White landing lights
- 11    D12, LANDING_LIGHT, 1500           White landing lights
- 12    D13, BACKUP_LIGHT,  1700           White backup/reverse lights
+LED   Outputs    Function       PWM limit(uS)  Usage
+      Nano BP
+  1     D2 PB12, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  2     D3 PB13, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  3     D4 PB14, POS_LIGHT,     1300           Red
+  4     D5 PB15, ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  5     D6 PB5 , POS_LIGHT,     1300           Green
+  6     D7 PB6 , ACL_STROBE,    1400           Heli anti collition white tripple strobe
+  7     D8 PB7 , POS_LIGHT,     1300           White
+  8     D9 PB8 , BEACON,        -              Red slow fading beacon. allways on when powered
+  9    D10 PB9 , BEACON,        1200           Red belly fading beacon, slightly faster.
+ 10    D11 PB10, LANDING_LIGHT, 1500           White landing lights
+ 11    D12 PB11, LANDING_LIGHT, 1500           White landing lights
+ 12    D13 PC13, BACKUP_LIGHT,  1700           White backup/reverse lights, (On board LED also)
 
 The PWM timing intervals in sequnce:
 1000 - 1199 all off except beacon on D9, power on indicator.

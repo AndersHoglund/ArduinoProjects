@@ -5,8 +5,7 @@
   *       Rx0 ------------o--------- SRXL2_DATA
   *                       |
   *       Tx1 ---|<--------
-  *
-  * A pullup resistor is not required if the Arduino Nano Rx and Tx LEDs are still connected, add one otherwise.
+.
   */
 
 #include <stdint.h>

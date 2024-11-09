@@ -5,18 +5,18 @@
 
 blinker_t blinkers[] =
 {
-  { 2, 3, 1100,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
-  { 3, 3, 1200,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
-  { 4, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Red
-  { 5, 3, 1300,   45, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
-  { 6, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Green
-  { 7, 3, 1400,   50, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
-  { 8, 1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // White
-  { 9, 20,1200,   10, 0, 0, BEACON,        0, POWER_BEACON  }, // Red slow fading beacon. allways on when powered
-  {10, 24, 800,   10, 0, 0, BEACON,        0, SW_BEACON  }, // Red belly fading beacon, slightly faster.
-  {11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
-  {12, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
-  {13, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0, BLINKER }   // White backup/reverse lights
+  { LED_1,  3, 1100,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { LED_2,  3, 1200,   40, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { LED_3,  1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Red
+  { LED_4,  3, 1300,   45, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { LED_5,  1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // Green
+  { LED_6,  3, 1400,   50, 0, 0, ACL_STROBE,    0, BLINKER }, // Heli anti collition white tripple strobe
+  { LED_7,  1, 1000, 1000, 0, 0, POS_LIGHT,     0, BLINKER }, // White
+  { LED_8, 20, 1200,   10, 0, 0, BEACON,        0, POWER_BEACON  }, // Red slow fading beacon. allways on when powered
+  { LED_9, 24,  800,   10, 0, 0, BEACON,        0, SW_BEACON  }, // Red belly fading beacon, slightly faster.
+  { LED_10, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
+  { LED_11, 1, 1000, 1000, 0, 0, LANDING_LIGHT, 0, BLINKER }, // White landing lights
+  { LED_12, 1, 1000, 1000, 0, 0, BACKUP_LIGHT,  0, BLINKER }   // White backup/reverse lights
 };
 
 // Fwd declarations
@@ -38,9 +38,7 @@ void LED_Output(unsigned long ct, uint16_t pwm)
   currentTime = ct;
   for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++ )
   {
-    if ( blinkers[i].type == NOT_USED ||
-         blinkers[i].pin   < FIRST_LED_PIN ||
-         blinkers[i].pin   > LAST_LED_PIN )
+    if ( blinkers[i].type == NOT_USED )
     {
       continue; // Next
     }
@@ -85,11 +83,11 @@ void togglePinState(blinker_t * b, uint16_t pwm)
 
   if ( (b->state & 0x01)  == 0 && pwm > b->pwm)
   {
-    digitalWrite(b->pin, HIGH);
+    digitalWrite(b->pin, LED_ON);
   }
   else
   {
-    digitalWrite(b->pin, LOW);
+    digitalWrite(b->pin, LED_OFF);
   }
   b->state++;
 }

@@ -6,6 +6,48 @@
 extern "C" {
 #endif
 
+// LED to pin connections
+#if defined(ARDUINO_AVR_NANO)
+
+#define LED_1 2
+#define LED_2 3
+#define LED_3 4
+#define LED_4 5
+#define LED_5 6
+#define LED_6 7
+#define LED_7 8
+#define LED_8 9
+#define LED_9 10
+#define LED_10 11
+#define LED_11 12
+#define LED_12 13
+
+#define LED_ON HIGH
+#define LED_OFF LOW
+
+#elif defined(_VARIANT_ARDUINO_STM32_)
+
+
+#define LED_1 PB12
+#define LED_2 PB13
+#define LED_3 PB14
+#define LED_4 PB15
+#define LED_5 PB5
+#define LED_6 PB6
+#define LED_7 PB7
+#define LED_8 PB8
+#define LED_9 PB9
+#define LED_10 PB10
+#define LED_11 PB11
+#define LED_12 PC13
+
+#define LED_ON LOW
+#define LED_OFF HIGH
+
+#else
+#error Bord type not supported
+#endif
+
 // Classification.
 #define NOT_USED         0
 #define POWER_BEACON     1  // Always on when powered up.
