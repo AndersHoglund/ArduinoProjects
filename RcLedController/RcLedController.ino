@@ -8,9 +8,9 @@
 
 #include "RcLedController_conf.h"
 
-#include "srxl2Input.hpp"
-#include "PWMinput.hpp"
-#include "LedOutput.hpp"
+#include "srxl2Input.h"
+#include "PWMinput.h"
+#include "LedOutput.h"
 
 // Ugly globals....
 unsigned long currentTime;
