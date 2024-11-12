@@ -1,16 +1,11 @@
-#if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_GENERIC_STM32F103C)
+#if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_BLUEPILL_F103C6)
 #error Bord type not supported
 
-// Please select one of the supported/tested Boards and board managers:
+// Please select one of the two supported/tested Boards and board managers:
 // * Arduino Nano from the standard "Arduino AVR boards" list
-// * Generic STM32F103C from "STM32F1xx boards" list ( Install Board Manager http://dan.drown.org/stm32duino/package_STM32duino_index.json )
+// * Generic STM32F1 series from "STM32 MCU based boards" list and  select Board part no "BluePill F103C6 (32k)"
+//   ( Install Board Manager https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json )
 #endif
-
-// TODO
-// I have not managed to get "STM32 MCU based boards" to compile OK. (Board Manager https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json  )
-// This is however needed to get STM32 internal halfduplex serial to work, not supported by the Dan Brown BM. So for now we need external diod same as eith aa Nano even on the STN32.
-//
-
 
 // Spektrum channel order
 #define THRO 0

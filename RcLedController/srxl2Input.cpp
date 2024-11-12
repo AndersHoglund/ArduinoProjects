@@ -8,8 +8,8 @@
 .
   */
 
+#include <Arduino.h>
 #include <stdint.h>
-#include <arduino.h>
 
 #include "RcLedController_conf.h"
 #include "srxl2Input.h"
@@ -24,6 +24,11 @@ const long pwmInterval = 22;
 static uint8_t rcCh;
 static uint16_t * pwmPtr;
 static unsigned long prevSrxl2PacketTime = 0; // Last OK parsed SRXL2 packet
+
+#if defined(ARDUINO_BLUEPILL_F103C6)
+//HardwareSerial srxl2port(PA9);
+HardwareSerial Serial1(PA9); // UART1_TX
+#endif
 
 void setupSRXL2()
 {

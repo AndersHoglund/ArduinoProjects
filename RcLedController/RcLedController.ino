@@ -2,6 +2,7 @@
    Arduino 12 channel RC LED Controller
 
    Nav lights, ACL strobes, beacons and landing and reverse lights. See LedOutput.cpp for details.
+
    Using SRXL2 or PWM input, automatically detected.
    If you need SerialRx from a satellite Rx, or fixed single PWM input, checkout older versions from Git.
 */
