@@ -1,9 +1,9 @@
-#if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_BLUEPILL_F103C6)
+#if !defined(ARDUINO_AVR_NANO) && !defined(ARDUINO_BLUEPILL_F103C8)
 #error Bord type not supported
 
 // Please select one of the two supported/tested Boards and board managers:
 // * Arduino Nano from the standard "Arduino AVR boards" list
-// * Generic STM32F1 series from "STM32 MCU based boards" list and  select Board part no "BluePill F103C6 (32k)"
+// * Generic STM32F1 series from "STM32 MCU based boards" list and  select Board part no "BluePill F103C8"
 //   ( Install Board Manager https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json )
 #endif
 
