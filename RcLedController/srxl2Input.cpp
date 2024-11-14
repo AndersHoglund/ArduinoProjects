@@ -12,7 +12,7 @@
 #include <arduino.h>
 
 #include "RcLedController_conf.h"
-#include "srxl2Input.hpp"
+#include "srxl2Input.h"
 
 #ifdef USE_SOFTWARE_SERIAL
 #error Software serial not supported

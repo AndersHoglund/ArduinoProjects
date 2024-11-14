@@ -1,7 +1,7 @@
 /************** LED output driver ***************/
 
 #include <Arduino.h>
-#include "LedOutput.hpp"
+#include "LedOutput.h"
 
 blinker_t blinkers[] =
 {

@@ -1,7 +1,7 @@
 /************* PWM Input driver *****************/
 
 #include <Arduino.h>
-#include "PWMinput.hpp"
+#include "PWMinput.h"
 
 static unsigned long prevPwmTime = 0;
 
