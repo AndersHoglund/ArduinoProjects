@@ -13,14 +13,11 @@
 #include "PWMinput.h"
 #include "LedOutput.h"
 
-#if defined(ARDUINO_BLUEPILL_F103C8)
-#define DEBUG
-#endif
-
-
 // Ugly globals....
 unsigned long currentTime;
 uint16_t pwmInput = 1000;  // All lights off by default at power up
+
+bool PWMinputInitialized = false;
 
 // Input types
 #define NONE  0
@@ -30,13 +27,7 @@ uint16_t pwmInput = 1000;  // All lights off by default at power up
 /*************************** Initialize ***********************************/
 void setup()
 {
-
-#ifdef DEBUG
-  Serial.begin(115200);
-#endif
-
   setupSRXL2();
-  setupPWM();
   setupLeds();
 }
 
@@ -50,9 +41,6 @@ void loop()
   {
     case NONE: // Should never happen, but .....
     {
-#ifdef DEBUG
-      Serial.println("None");
-#endif
       pwmInput = 1000;
       inputType++; // Next input type
       break;
@@ -60,9 +48,6 @@ void loop()
 
     case SRXL2:
     {
-#ifdef DEBUGxx
-      Serial.println("SRXL2");
-#endif
       getSRXL2Pwm(currentTime, LED_CONTROL_CHANNEL, &pwmInput);
       // If SRXL2 parsing fails, try next type
       if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) inputType++; // Next input type
@@ -71,9 +56,12 @@ void loop()
 
     case PWM:
     {
-#ifdef DEBUGxx
-      Serial.println("PWM");
-#endif
+      // Defered init
+      if (!PWMinputInitialized)
+      {
+        setupPWM();
+        PWMinputInitialized = true;
+      }
       getPWMinput(currentTime, &pwmInput);
       if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;  // No more input types to try....
       break;

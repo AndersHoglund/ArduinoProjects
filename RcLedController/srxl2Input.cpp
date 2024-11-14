@@ -10,12 +10,7 @@
 #error Software serial not supported
 #endif
 
-#if defined(ARDUINO_BLUEPILL_F103C8)
-#define DEBUG
-#endif
-
 unsigned long prevPwmTime = 0;
-const long pwmInterval = 22;
 
 static uint8_t rcCh;
 static uint16_t * pwmPtr;
@@ -47,10 +42,6 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
 
   if ((currentTime - prevSrxl2PacketTime) > (SRXL2_FRAME_TIMEOUT*50))
   {
-#ifdef DEBUG
-  Serial.print(currentTime - prevSrxl2PacketTime);
-  Serial.println(" Timeout");
-#endif
     *pwmValuePtr = 0; // Signal time out no SRXL2 data recieved after 50 frame times.
     return;
   }
@@ -58,10 +49,6 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
 
   if (currentTime - prevSerialRxTime > SRXL2_FRAME_TIMEOUT)
   {
-#ifdef DEBUG
-  Serial.print(currentTime - prevSerialRxTime);
-  Serial.println(" SRXL2 Run");
-#endif
     prevSerialRxTime = currentTime;
     rxBufferIndex = 0;
     srxlRun(0, SRXL2_FRAME_TIMEOUT);
@@ -76,12 +63,6 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
     prevSerialRxTime = currentTime;
     unsigned char c = srxl2port.read(); // 
     rxBuffer[rxBufferIndex++] = c;
-#ifdef DEBUG
-  Serial.print("Rx: ");
-  Serial.print(rxBuffer[rxBufferIndex -1], HEX);
-  Serial.println("");
-#endif
-
   }
 
   if (rxBufferIndex >= 5)
@@ -91,9 +72,6 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
       uint8_t packetLength = rxBuffer[2];
       if (rxBufferIndex >= packetLength)
       {
-#ifdef DEBUG
-        Serial.println("SRXL2 Parse");
-#endif
         // Try to parse SRXL packet -- this internally calls srxlRun() after packet is parsed and reset timeout
         if (srxlParsePacket(0, rxBuffer, packetLength))
         {
@@ -130,15 +108,5 @@ void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length)
   for (uint8_t i=0; i < length; i++)
   {
     srxl2port.write(pBuffer[i]);
-#if defined DEBUG
-  if (pBuffer[i] < 0x010)
-    Serial.print("Tx: 0x0");
-  else
-    Serial.print("Tx: 0x");
-
-  Serial.print(pBuffer[i], HEX);
-  Serial.println("");
-#endif
-
   }
 }
