@@ -12,7 +12,7 @@ extern "C" {
 #if defined(ARDUINO_AVR_NANO)
 #define srxl2port Serial
 
-#elif defined(_VARIANT_ARDUINO_STM32_)
+#elif defined(ARDUINO_GENERIC_STM32F103C)
 #define srxl2port Serial1
 
 #else

@@ -25,7 +25,7 @@ extern "C" {
 #define LED_ON HIGH
 #define LED_OFF LOW
 
-#elif defined(_VARIANT_ARDUINO_STM32_)
+#elif defined(ARDUINO_GENERIC_STM32F103C)
 
 
 #define LED_1 PB12

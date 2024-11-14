@@ -7,7 +7,7 @@ extern "C" {
 
 #if defined(ARDUINO_AVR_NANO)
 #define INPUT_PIN 0           // RX0 pin, new wiring shared PWM/SRXL2 input pin
-#elif defined(_VARIANT_ARDUINO_STM32_)
+#elif defined(ARDUINO_GENERIC_STM32F103C)
 #define INPUT_PIN BOARD_USART1_RX_PIN
 #else
 #error Bord type not supported
