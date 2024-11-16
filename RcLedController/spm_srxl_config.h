@@ -32,11 +32,11 @@ extern "C" {
 #endif
 
 // User included headers/declarations to access interface functions required below
-void uartSetBaud(uint8_t uart, uint32_t baudRate);
-void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length);
 void userProvidedFillSrxlTelemetry(SrxlTelemetryData* pTelemetry);
 void userProvidedReceivedChannelData(SrxlChannelData* pChannelData, bool isFailsafe);
 void userProvidedHandleVtxData(SrxlVtxData* pVtxData);
+void uartSetBaud(uint8_t uart, uint32_t baudRate);
+void uartTransmit(uint8_t uart, uint8_t* pBuffer, uint8_t length);
 
 //### USER CONFIGURATION ###
 

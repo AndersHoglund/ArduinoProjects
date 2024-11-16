@@ -16,11 +16,18 @@ Input connections, for Arduino Nano or STM32F103 BluePill (BP), via for example 
         GND  GND
 
      LED Controller                  RC Receiver
-     UART Rx  ------------o
+     UART Tx  ----|<|-----o
                           |
-     UART Tx  ---|<|------o--------- PWM/SRXL2_DATA
+     UART Rx  ------------o--------- PWM/SRXL2_DATA
      +5V      ---------------------- +5V
      GND      ---------------------- GND
+
+Above is only for Arduino Nano and STM32F103 using the Dan Brown Board Support package.
+The STM32F1duino BSP supports internal serial halfduplex, so the external diod can be omitted.
+
+     UART1 Tx PA9  ----------------- PWM/SRXL2_DATA
+     +5V           ----------------- +5V
+     GND           ----------------- GND
 
 
 For SRXL2, Use the Bind/Prog/SRXL2 port on the Rx

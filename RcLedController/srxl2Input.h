@@ -12,8 +12,13 @@ extern "C" {
 #if defined(ARDUINO_AVR_NANO)
 #define srxl2port Serial
 
+
 #elif defined(ARDUINO_GENERIC_STM32F103C)
 #define srxl2port Serial1
+
+#elif defined(ARDUINO_BLUEPILL_F103C8)
+// place holder
+
 
 #else
 #error Bord type not supported

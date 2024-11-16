@@ -1,15 +1,7 @@
 /*********** SRXL2 input driver **************/
 
-/* Hardware UART must be used with an added schottky diode (BAT85 works) to create a single wire halfduplex interface.
-  *
-  *       Rx0 ------------o--------- SRXL2_DATA
-  *                       |
-  *       Tx1 ---|<--------
-.
-  */
-
+#include <Arduino.h>
 #include <stdint.h>
-#include <arduino.h>
 
 #include "RcLedController_conf.h"
 #include "srxl2Input.h"
@@ -19,11 +11,14 @@
 #endif
 
 unsigned long prevPwmTime = 0;
-const long pwmInterval = 22;
 
 static uint8_t rcCh;
 static uint16_t * pwmPtr;
 static unsigned long prevSrxl2PacketTime = 0; // Last OK parsed SRXL2 packet
+
+#if defined(ARDUINO_BLUEPILL_F103C8)
+HardwareSerial srxl2port(PA9); // UART1_TX Half Duplex
+#endif
 
 void setupSRXL2()
 {
@@ -51,12 +46,17 @@ void getSRXL2Pwm(unsigned long currentTime, uint8_t rcChannel, uint16_t * pwmVal
     return;
   }
 
+
   if (currentTime - prevSerialRxTime > SRXL2_FRAME_TIMEOUT)
   {
     prevSerialRxTime = currentTime;
     rxBufferIndex = 0;
     srxlRun(0, SRXL2_FRAME_TIMEOUT);
   }
+
+#if defined(ARDUINO_BLUEPILL_F103C8)
+  srxl2port.enableHalfDuplexRx();
+#endif
 
   if ( srxl2port.available() )
   {

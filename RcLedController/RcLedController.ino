@@ -2,6 +2,7 @@
    Arduino 12 channel RC LED Controller
 
    Nav lights, ACL strobes, beacons and landing and reverse lights. See LedOutput.cpp for details.
+
    Using SRXL2 or PWM input, automatically detected.
    If you need SerialRx from a satellite Rx, or fixed single PWM input, checkout older versions from Git.
 */
@@ -16,6 +17,8 @@
 unsigned long currentTime;
 uint16_t pwmInput = 1000;  // All lights off by default at power up
 
+bool PWMinputInitialized = false;
+
 // Input types
 #define NONE  0
 #define SRXL2 1
@@ -25,7 +28,6 @@ uint16_t pwmInput = 1000;  // All lights off by default at power up
 void setup()
 {
   setupSRXL2();
-  setupPWM();
   setupLeds();
 }
 
@@ -54,6 +56,12 @@ void loop()
 
     case PWM:
     {
+      // Defered init
+      if (!PWMinputInitialized)
+      {
+        setupPWM();
+        PWMinputInitialized = true;
+      }
       getPWMinput(currentTime, &pwmInput);
       if (pwmInput < PWM_INPUT_MIN || pwmInput > PWM_INPUT_MAX) pwmInput = 1000;  // No more input types to try....
       break;
@@ -61,6 +69,7 @@ void loop()
 
     default: // Should never happen
     {
+      Serial.println("Ooops");
       pwmInput = 1000;
       break;
     }
