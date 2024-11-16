@@ -22,7 +22,7 @@ Input connections, for Arduino Nano or STM32F103 BluePill (BP), via for example 
      +5V      ---------------------- +5V
      GND      ---------------------- GND
 
-Above is only for Arduino Nano and STM32F103 using the Dan Brown Board Support package.
+Above is only for Arduino Nano and STM32F103 using the Dan Drown Board Support package.
 The STM32F1duino BSP supports internal serial halfduplex, so the external diod can be omitted.
 
      UART1 Tx PA9  ----------------- PWM/SRXL2_DATA
