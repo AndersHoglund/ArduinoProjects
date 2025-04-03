@@ -9,9 +9,9 @@ If you need serialaRx from a remote satellite Rx, you must checkout some older v
 Input type is auto detected, if SRXL2 fails we fallback to PWM.
 
 Input connections, for Arduino Nano or STM32F103 BluePill (BP), via for example a std servo cable:
-        Namo BP
+        Nano BP
         Rx0  PA10 UART Rx. Data signal input for PWM and SRXL2.
-        Tx1  PA9  UART Tx. Zener diode connected to Rx0/PA10.
+        Tx1  PA9  UART Tx. Schottky diode connected to Rx0/PA10. (BAT85 for example).
         +5V  +5V  Power from main Rx or BEC
         GND  GND
 

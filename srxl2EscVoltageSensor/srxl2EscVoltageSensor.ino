@@ -17,7 +17,7 @@
 #include "spm_srxl.h"
 #include "spektrumTelemetrySensors.h"
 
-// Select SRXL2 input and output pins (need to be combined into one halfduplex line with a zener diod, BAT85 works)
+// Select SRXL2 input and output pins (need to be combined into one halfduplex line with a Schottky diod, BAT85 works)
 
 #ifdef USE_SOFTWARE_SERIAL
 #define SRXL2_INPUT_PIN 2     //  ------------o--------- SRXL2_DATA
@@ -25,6 +25,7 @@
 #define SRXL2_OUTPUT_PIN 3    //  ---|<--------
 #else
 //Hardware UART might also need a pullup resistor, depending on SRXL2 hub/master. FC6250HX seems to lack PU. 3.3k or so works.
+
                               // VCC +--|===|--
                               //              |
 #define SRXL2_INPUT_PIN 1     //  ------------o--------- SRXL2_DATA
