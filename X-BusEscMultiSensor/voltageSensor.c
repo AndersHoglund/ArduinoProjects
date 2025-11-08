@@ -13,6 +13,7 @@
 
 #define ADC_SCALE 5.0/1023.0
 #define SCALE ((double)((RESISTOR_LOW + RESISTOR_HIGH) / RESISTOR_LOW) * ADC_SCALE)
+#define CALIBRATION_FACTOR (1.12)
 
 double getVoltage()
  {
@@ -20,5 +21,5 @@ double getVoltage()
     UINT16 sensorValue = analogRead(SENSOR_PIN);
   
     // compute real voltage
-    return (double)((sensorValue) * SCALE);
+    return (double)((sensorValue) * SCALE * CALIBRATION_FACTOR);
  }
