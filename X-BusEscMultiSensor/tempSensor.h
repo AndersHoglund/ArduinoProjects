@@ -6,7 +6,11 @@ extern "C" {
 
 #include "spmTypes.h"
 
-UINT16 getTemp();
+// select the analog voltage input pin
+#define FET_SENSOR_PIN A7
+#define BEC_SENSOR_PIN A6
+
+UINT16 getTemp(UINT16 sensorPin);
 
 #ifdef __cplusplus
 } // extern "C"

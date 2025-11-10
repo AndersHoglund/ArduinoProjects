@@ -2,12 +2,10 @@
 #include <stdint.h>
 
 #include "spmTypes.h"
-#include "rpmSensor.h"
+#include "tempSensor.h"
+#include "Thermistor.h"
 
-// select the analog voltage input pin
-#define SENSOR_PIN DD   
-
-UINT16 getTemp()
+UINT16 getTemp(UINT16 sensorPin)
  {
-    return (123);
+    return (getTemperature(sensorPin));
  }

@@ -6,7 +6,14 @@ extern "C" {
 
 #include "spmTypes.h"
 
-UINT16 getRpm();
+//must be an interrupt pin
+#define PININ 3
+
+//poles in motor
+#define POLES 10
+
+float getErpm();
+float getRpm();
 
 #ifdef __cplusplus
 } // extern "C"

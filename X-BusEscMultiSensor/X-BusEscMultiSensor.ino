@@ -15,6 +15,7 @@
 #include "rpmSensor.h"
 #include "tempSensor.h"
 
+
 #define I2C_SDA_PIN A4
 #define I2C_SCL_PIN A5
 
@@ -51,7 +52,6 @@ void requestEvent()
 
 void setup()
 {
-
   pinMode(13,OUTPUT);
   digitalWrite(13,LOW);           // Debug LED and scope trigger
   
@@ -68,11 +68,19 @@ void loop()
   }
 
   double voltage = getVoltage();
-  UINT16 rpm     = getRpm();
-  UINT16 temp    = getTemp();
+  voltage *= 100;  // Centivolts
 
-  TmBuffer.esc.RPM        = SwapEndian(rpm);
-  TmBuffer.esc.voltsInput = SwapEndian(voltage*100); //Centivolts
-  TmBuffer.esc.tempFET    = SwapEndian(temp*10);
+  float erpm     = getErpm()/10; // DekaRPM
+
+  UINT16 tempFET = getTemp(FET_SENSOR_PIN);
+  UINT16 tempBEC = getTemp(BEC_SENSOR_PIN);
+
+  if ( tempFET > 500) {tempFET = UINT_NO_DATA;} else {tempFET *= 10;} // Decidegrees
+  if ( tempBEC > 500) {tempBEC = UINT_NO_DATA;} else {tempBEC *= 10;}
+
+  TmBuffer.esc.RPM        = SwapEndian(erpm);
+  TmBuffer.esc.voltsInput = SwapEndian(voltage);
+  TmBuffer.esc.tempFET    = SwapEndian(tempFET);
+  TmBuffer.esc.tempBEC    = SwapEndian(tempBEC);
 
 }

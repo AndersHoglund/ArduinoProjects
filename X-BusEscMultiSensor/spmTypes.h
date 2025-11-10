@@ -16,10 +16,9 @@ extern "C" {
 #define UINT64 unsigned long long int
 
 #define NO_DATA 0xff
-#define INT_NO_DATA 0xffff
-#define UINT_NO_DATA_BE 0x7fff
-#define UINT_NO_DATA_LE 0xff7f
-#define UINT_NO_DATA UINT_NO_DATA_BE
+#define UINT_NO_DATA 0xffff
+#define INT_NO_DATA_BE 0x7fff
+#define INT_NO_DATA_LE 0xff7f
 
 #ifdef __cplusplus
 } // extern "C"
