@@ -61,12 +61,6 @@ void setup()
 
 void loop()
 {
-  if (once)
-  {
-    once = 0;
-    digitalWrite(13, HIGH);
-  }
-
   double voltage = getVoltage();
   voltage *= 100;  // Centivolts
 

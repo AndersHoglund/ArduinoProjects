@@ -5,10 +5,10 @@
 #include "rpmSensor.h"
 
 volatile byte pulses;
-float rpm;
-float eRpm;
-unsigned long timeStamp;
-unsigned long newTime;
+static float rpm;
+static float eRpm;
+static unsigned long timeStamp;
+static unsigned long newTime;
 
 //if there's a new timestamp
 bool newTimeStamp;
@@ -28,6 +28,8 @@ void revCount()
    if (pulses >= THRESH) {
        newTime = millis();
        newTimeStamp = true; // flag to tell main code to read the value of timeStamp
+
+       digitalWrite(13,HIGH);           // Debug LED and scope trigger
   }
 }
 
@@ -51,14 +53,15 @@ float getErpm()
   {
     noInterrupts();//disable interrupt
     newTimeStamp = false;//toggle newTimeStamp back
-    float eRpm = (float)pulses / ( (float)(newTime-timeStamp)/MILTOMIN );
+    eRpm = ((float)pulses / ( float)(newTime-timeStamp)) * MILTOMIN ;
 
     //reset pulse and timestamp
     pulses = 0;
     timeStamp = millis();
     interrupts(); //reattach interrupt
+
+    digitalWrite(13, LOW);
   }
-  //return (rpm);
   return (eRpm);
 }
 
