@@ -27,7 +27,7 @@ static unsigned long currentTime;
 
 void setupLeds()
 {
-  for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++)
+  for (unsigned int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++)
   {
     pinMode(blinkers[i].pin, OUTPUT);
   }
@@ -36,7 +36,7 @@ void setupLeds()
 void LED_Output(unsigned long ct, uint16_t pwm)
 {
   currentTime = ct;
-  for (int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++ )
+  for (unsigned int i = 0; i < sizeof(blinkers) / sizeof(blinker_t); i++ )
   {
     if ( blinkers[i].type == NOT_USED )
     {
