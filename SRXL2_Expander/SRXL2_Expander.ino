@@ -8,6 +8,30 @@
 #include <avr/wdt.h>//watchdog
 #include "spm_srxl.h"
 
+#if defined(ARDUINO_AVR_MICRO)
+// AT32U4
+#define TIMERX TIMER3
+#define TCNTX  TCNT3
+#define TCCRXA TCCR3A
+#define TCCRXB TCCR3B
+#define TIFRX  TIFR3
+#define TIMSKX TIMSK3
+#define OCRXA  OCR3A
+#define OCRXB  OCR3B
+#elif defined (ARDUINO_AVR_NANO) or defined (ARDUINO_AVR_MINI) or defined (ARDUINO_AVR_PRO)
+// AT32328P 16Mhz really
+#define TIMERX TIMER2
+#define TCNTX  TCNT2
+#define TCCRXA TCCR2A
+#define TCCRXB TCCR2B
+#define TIFRX  TIFR2
+#define TIMSKX TIMSK2
+#define OCRXA  OCR2A
+#define OCRXB  OCR2B
+#else
+#error "Board type not supported"
+#endif
+
 #define SRXL2_PORT_BAUDRATE_DEFAULT 115200
 #define SRXL2_FRAME_TIMEOUT 22
 #define srxl2port Serial
@@ -77,7 +101,7 @@ static unsigned int iCount;
 static volatile uint8_t *OutPortTable[MAX_NO_OF_CHANNELS] = {&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTD,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTB,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC,&PORTC};
 static uint8_t OutBitTable[MAX_NO_OF_CHANNELS] = {4,8,16,32,64,128,1,2,4,8,16,32,1,2,4,8,16,32,64,128};
 static unsigned int ServoPW[MAX_NO_OF_CHANNELS];
-static byte Timer2Toggle;
+static byte TIMERXToggle;
 static volatile uint8_t *OutPort1A = &PORTD;
 static volatile uint8_t *OutPort1B = &PORTB;
 static uint8_t OutBit1A = 0;
@@ -185,7 +209,7 @@ ISR(TIMER1_COMPB_vect) // Interrupt routine for timer 1 compare B. Used for timi
   *OutPort1B &= ~OutBit1B;                //Pulse B finished. Set to low
 }
 
-ISR(TIMER2_COMPA_vect) // Interrupt routine for timer 2 compare A. Used for timing 50Hz for each servo.
+ISR(TIMERX_COMPA_vect) // Interrupt routine for timer 2 compare A. Used for timing 50Hz for each servo.
 { 
 #if UseJitterCompensation == YES
     Jitter4 = TCNT1L-100;
@@ -199,7 +223,7 @@ ISR(TIMER2_COMPA_vect) // Interrupt routine for timer 2 compare A. Used for timi
   *OutPortNext1B |= OutBitNext1B;         // Start new pulse on next servo. Write pin HIGH
 }
 
-ISR(TIMER2_COMPB_vect) // Interrupt routine for timer 2 compare B. Used for timing 50Hz for each servo.
+ISR(TIMERX_COMPB_vect) // Interrupt routine for timer 3 compare B. Used for timing 50Hz for each servo.
 { 
   TIFR1 = 255;                                       // Clear  pending interrupts
 #if UseJitterCompensation == YES
@@ -211,45 +235,45 @@ ISR(TIMER2_COMPB_vect) // Interrupt routine for timer 2 compare B. Used for timi
     if(Jitter3 == 133){asm volatile("nop\n\t");}
 #endif
   TCNT1 = 0;                                         // Restart counter for timer1
-  TCNT2 = 0;                                         // Restart counter for timer2
+  TCNTX = 0;                                         // Restart counter for timer2
   sei();
   *OutPort1A &= ~OutBit1A;                           // Set pulse low to if not done already
   *OutPort1B &= ~OutBit1B;                           // Set pulse low to if not done already
-  OutPort1A = OutPortTable[Timer2Toggle];            // Temp port for COMP1A
-  OutBit1A = OutBitTable[Timer2Toggle];              // Temp bitmask for COMP1A
-  OutPort1B = OutPortTable[Timer2Toggle+10];         // Temp port for COMP1B
-  OutBit1B = OutBitTable[Timer2Toggle+10];           // Temp bitmask for COMP1B
+  OutPort1A = OutPortTable[TIMERXToggle];            // Temp port for COMP1A
+  OutBit1A = OutBitTable[TIMERXToggle];              // Temp bitmask for COMP1A
+  OutPort1B = OutPortTable[TIMERXToggle+10];         // Temp port for COMP1B
+  OutBit1B = OutBitTable[TIMERXToggle+10];           // Temp bitmask for COMP1B
 
-  OCR1A = ServoPW[Timer2Toggle]-8020;
-  OCR1B = ServoPW[Timer2Toggle+10]-8015; 
-  Timer2Toggle++;                                    // Next servo in line.
-  if(Timer2Toggle==10)
+  OCR1A = ServoPW[TIMERXToggle]-8020;
+  OCR1B = ServoPW[TIMERXToggle+10]-8015;
+  TIMERXToggle++;                                    // Next servo in line.
+  if(TIMERXToggle==10)
   { 
-    Timer2Toggle = 0;                                // If next servo is grater than 9, start on 0 again.
+    TIMERXToggle = 0;                                // If next servo is grater than 9, start on 0 again.
                                    
   }
-  OutPortNext1A = OutPortTable[Timer2Toggle];        // Next Temp port for COMP1A
-  OutBitNext1A = OutBitTable[Timer2Toggle];          // Next Temp bitmask for COMP1A
-  OutPortNext1B = OutPortTable[Timer2Toggle+10];     // Next Temp port for COMP1B
-  OutBitNext1B = OutBitTable[Timer2Toggle+10];       // Next Temp bitmask for COMP1B
+  OutPortNext1A = OutPortTable[TIMERXToggle];        // Next Temp port for COMP1A
+  OutBitNext1A = OutBitTable[TIMERXToggle];          // Next Temp bitmask for COMP1A
+  OutPortNext1B = OutPortTable[TIMERXToggle+10];     // Next Temp port for COMP1B
+  OutBitNext1B = OutBitTable[TIMERXToggle+10];       // Next Temp bitmask for COMP1B
 }
 
 void ServoSetup()
 {
   // Timer 1 setup(16 bit):
-  TCCR1A = 0;                     // Normal counting mode 
-  TCCR1B = 2;                     // Set prescaler to 1 
-  TCNT1 = 0;                      // Clear timer count 
+  TCCR1A = 0;                     // Normal counting mode
+  TCCR1B = 2;                     // Set prescaler to 1
+  TCNT1 = 0;                      // Clear timer count
   TIFR1 = 255;                    // Clear  pending interrupts
   TIMSK1 = 6;                     // Enable the output compare A and B interrupt 
   // Timer 2 setup(8 bit):
-  TCCR2A = 0;                     // Normal counting mode 
-  TCCR2B = 6;                     // Set prescaler to 256
-  TCNT2 = 0;                      // Clear timer count 
-  TIFR2 = 255;                    // Clear pending interrupts
-  TIMSK2 = 6;                     // Enable the output compare A and B interrupt 
-  OCR2A = 106;                     // 93 Set counter A for about 500us before counter B below; 106 for 220us
-  OCR2B = 137;                    // Set counter B for about 2000us (137 is 22ms, 124 20ms/10, where 20ms is 50Hz);
+  TCCRXA = 0;                     // Normal counting mode
+  TCCRXB = 6;                     // Set prescaler to 256
+  TCNTX = 0;                      // Clear timer count
+  TIFRX = 255;                    // Clear pending interrupts
+  TIMSKX = 6;                     // Enable the output compare A and B interrupt
+  OCRXA = 106;                     // 93 Set counter A for about 500us before counter B below; 106 for 220us
+  OCRXB = 137;                    // Set counter B for about 2000us (137 is 22ms, 124 20ms/10, where 20ms is 50Hz);
 
   timersRunning = true;
 }
