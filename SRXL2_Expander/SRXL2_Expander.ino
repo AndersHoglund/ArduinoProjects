@@ -8,8 +8,7 @@
 #include <avr/wdt.h>//watchdog
 #include "spm_srxl.h"
 
-#if defined(ARDUINO_AVR_MICRO)
-// AT32U4
+#if defined (__AVR_ATmega32U4__) // MICRO
 #define TIMERX TIMER3
 #define TCNTX  TCNT3
 #define TCCRXA TCCR3A
@@ -18,8 +17,7 @@
 #define TIMSKX TIMSK3
 #define OCRXA  OCR3A
 #define OCRXB  OCR3B
-#elif defined (ARDUINO_AVR_NANO) or defined (ARDUINO_AVR_MINI) or defined (ARDUINO_AVR_PRO)
-// AT32328P 16Mhz really
+#elif defined (__AVR_ATmega328P__) // NANO, MINI, PRO Mini etc
 #define TIMERX TIMER2
 #define TCNTX  TCNT2
 #define TCCRXA TCCR2A
@@ -29,7 +27,7 @@
 #define OCRXA  OCR2A
 #define OCRXB  OCR2B
 #else
-#error "Board type not supported"
+#error "CPU type not supported"
 #endif
 
 #define SRXL2_PORT_BAUDRATE_DEFAULT 115200
